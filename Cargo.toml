@@ -1,0 +1,70 @@
+[package]
+name = "last-game"
+version = "0.1.0"
+edition = "2021"
+authors = ["Arena Developer <dev@arena.ai>"]
+description = "100% Rust ASCII Mario Game with Leptos Frontend, Nostr NIP-04/44 Whitelist Encryption & Cloudflare Pages CI/CD"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+# Leptos Reactive Web Framework
+leptos = { version = "0.6", features = ["csr"] }
+leptos_router = { version = "0.6", features = ["csr"] }
+leptos_meta = { version = "0.6", features = ["csr"] }
+
+# Nostr Protocol & SDK
+nostr = { version = "0.34", default-features = false, features = ["nip04", "nip44", "nip19", "nip07"] }
+nostr-sdk = { version = "0.34", default-features = false, features = ["nip04", "nip44", "nip07"] }
+
+# Cryptography for NIP-04 (AES-256-CBC) and NIP-44 v2 (ChaCha20-Poly1305 + HKDF)
+secp256k1 = { version = "0.29", features = ["rand", "global-context", "serde"] }
+bech32 = "0.11"
+chacha20poly1305 = "0.10"
+aes = "0.8"
+cbc = "0.1"
+sha2 = "0.10"
+hkdf = "0.12"
+base64 = "0.22"
+
+# Serialization & Utilities
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+rand = { version = "0.8", features = ["small_rng"] }
+chrono = { version = "0.4", features = ["serde"] }
+
+# WASM & Web APIs
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = { version = "0.3", features = [
+    "Window",
+    "Document",
+    "Element",
+    "HtmlElement",
+    "HtmlCanvasElement",
+    "CanvasRenderingContext2d",
+    "AudioContext",
+    "OscillatorNode",
+    "GainNode",
+    "KeyboardEvent",
+    "Storage",
+    "Performance",
+    "Headers",
+    "Request",
+    "Response"
+] }
+gloo-timers = "0.3"
+gloo-events = "0.2"
+console_error_panic_hook = "0.1"
+tracing = "0.1"
+tracing-wasm = "0.2"
+
+[dev-dependencies]
+wasm-bindgen-test = "0.3"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

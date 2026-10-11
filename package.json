@@ -1,0 +1,21 @@
+{
+  "name": "ascii-mario-rust-nostr",
+  "version": "1.0.0",
+  "description": "100% Rust ASCII Mario Game with Leptos Frontend and Nostr NIP-04/44 Whitelist Encryption",
+  "main": "server/preview_server.js",
+  "scripts": {
+    "start": "node server/preview_server.js",
+    "preview": "node server/preview_server.js"
+  },
+  "keywords": [
+    "rust",
+    "leptos",
+    "nostr",
+    "ascii-mario",
+    "nip-04",
+    "nip-44",
+    "cloudflare-pages"
+  ],
+  "author": "Arena Developer",
+  "license": "MIT"
+}

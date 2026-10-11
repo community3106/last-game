@@ -1,0 +1,12 @@
+[build]
+target = "public/index.html"
+dist = "dist"
+
+[watch]
+watch = ["src", "public"]
+ignore = [".git", "target", "dist"]
+
+[serve]
+address = "0.0.0.0"
+port = 3000
+open = false

@@ -1,0 +1,21 @@
+pub mod navbar;
+pub mod footer;
+pub mod mario_game;
+pub mod games_page;
+pub mod about_page;
+pub mod admin_page;
+pub mod subscription_modal;
+pub mod nostr_login_modal;
+pub mod nip_crypto_demo;
+pub mod leaderboard;
+
+pub use navbar::*;
+pub use footer::*;
+pub use mario_game::*;
+pub use games_page::*;
+pub use about_page::*;
+pub use admin_page::*;
+pub use subscription_modal::*;
+pub use nostr_login_modal::*;
+pub use nip_crypto_demo::*;
+pub use leaderboard::*;
