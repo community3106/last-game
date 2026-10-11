@@ -1,0 +1,14 @@
+{
+  "name": "last-game",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "trunk serve",
+    "build": "trunk build --release",
+    "fmt": "cargo fmt && rustfmt src/**/*.rs",
+    "deploy": "wrangler pages deploy dist --project-name=last-game"
+  },
+  "devDependencies": {
+    "wrangler": "^3.60.0"
+  }
+}

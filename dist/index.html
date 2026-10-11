@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>last-game — 100% Rust ASCII Mario (Preview)</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{fontFamily:{mono:['JetBrains Mono','ui-monospace','monospace'],pixel:['Press Start 2P','monospace']},colors:{ink:'#080a0f',panel:'#11131a'}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:dark}
+body{background:#080a0f;color:#e6e6e6;font-family:'JetBrains Mono',ui-monospace,monospace}
+.pixel-font{font-family:'Press Start 2P',monospace}
+.scanline{position:relative;overflow:hidden}
+.scanline::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,0.03) 0px,transparent 2px,transparent 4px);pointer-events:none}
+.game-pre{line-height:1.0;letter-spacing:0.02em;font-size:13px;text-shadow:0 0 8px rgba(99,102,241,0.35)}
+@media(max-width:640px){.game-pre{font-size:9px}}
+.grid-paper{background-image:linear-gradient(rgba(255,255,255,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.03) 1px,transparent 1px);background-size:24px 24px}
+</style>
+</head>
+<body>
+<!-- NAV -->
+<header class="sticky top-0 z-40 backdrop-blur-xl bg-[#080a0f]/80 border-b border-zinc-800">
+  <div class="max-w-6xl mx-auto px-4 md:px-6 h-[64px] flex items-center justify-between gap-4">
+    <div class="flex items-center gap-6">
+      <a href="#" class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-red-500 to-violet-600 grid place-items-center font-black text-white text-sm">LG</div>
+        <span class="pixel-font text-[11px] hidden sm:inline tracking-widest">LAST-GAME</span>
+        <span class="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 hidden md:inline">100% Rust</span>
+      </a>
+      <nav class="hidden md:flex items-center gap-1 text-sm">
+        <a href="#games" class="px-3 py-1.5 rounded-full hover:bg-zinc-800 transition">Games</a>
+        <a href="#pricing" class="px-3 py-1.5 rounded-full hover:bg-zinc-800 transition">Pricing</a>
+        <a href="#about" class="px-3 py-1.5 rounded-full hover:bg-zinc-800 transition">About us</a>
+        <a href="#play" class="px-3 py-1.5 rounded-full bg-white text-black font-bold hover:bg-zinc-200 transition">▶ Play</a>
+      </nav>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="hidden sm:inline-flex items-center gap-1.5 text-xs text-zinc-400"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span><span id="relayStatus">Nostr connected (preview)</span></span>
+      <span id="badgeAdmin" class="hidden text-[10px] px-2 py-1 rounded-full bg-amber-500 text-black font-bold">👑 管理者</span>
+      <span id="badgePaid" class="hidden text-[10px] px-2 py-1 rounded-full bg-violet-600 text-white font-bold">★ Premium</span>
+      <span id="npubDisplay" class="hidden text-xs px-2.5 py-1.5 rounded-full bg-zinc-800 border border-zinc-700 font-mono"></span>
+      <button id="btnLogin" class="text-xs px-4 py-1.5 rounded-full bg-violet-600 hover:bg-violet-500 text-white font-bold">Nostrでログイン</button>
+      <button id="btnLogout" class="hidden text-xs px-3 py-1.5 rounded-full border border-zinc-700 hover:bg-zinc-800">Logout</button>
+    </div>
+  </div>
+  <div class="md:hidden border-t border-zinc-800 flex gap-1 px-2 py-2 overflow-x-auto text-xs">
+    <a href="#games" class="px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 whitespace-nowrap">Games</a>
+    <a href="#play" class="px-3 py-1.5 rounded-full bg-white text-black font-bold whitespace-nowrap">▶ Play</a>
+    <a href="#pricing" class="px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 whitespace-nowrap">Pricing</a>
+    <a href="#about" class="px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 whitespace-nowrap">About</a>
+    <a href="#admin" class="px-3 py-1.5 rounded-full bg-zinc-900 border border-zinc-800 whitespace-nowrap">Admin</a>
+  </div>
+  <!-- login modal -->
+  <div id="loginModal" class="hidden absolute top-[64px] right-4 md:right-6 w-[min(420px,95vw)] rounded-2xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl z-50">
+    <h3 class="font-bold text-sm">Nostrでログイン</h3>
+    <p class="text-xs text-zinc-400 mt-1">nsec / npub / hex を貼り付け。鍵はローカルにのみ保存されます。</p>
+    <input id="loginInput" placeholder="nsec1..., npub1..., または hex" class="mt-3 w-full px-3 py-2.5 rounded-xl bg-black border border-zinc-700 text-sm font-mono placeholder:text-zinc-600 focus:outline-none focus:border-violet-600"/>
+    <p id="loginError" class="hidden mt-2 text-xs text-red-400"></p>
+    <div class="mt-3 flex gap-2">
+      <button id="loginSubmit" class="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 text-white text-sm font-bold">ログイン</button>
+      <button id="loginClose" class="px-4 py-2.5 rounded-xl border border-zinc-700 text-sm">閉じる</button>
+    </div>
+    <p class="mt-3 text-[11px] text-zinc-500">管理者ホワイトリストは <code class="px-1 py-0.5 bg-zinc-800 rounded">ADMIN_PUBKEYS</code> で指定。デモでは「デモ鍵で試す」を押してください。</p>
+    <div class="mt-3 flex gap-2">
+      <button id="demoLogin" class="text-[11px] px-2.5 py-1 rounded-full border border-zinc-700 hover:bg-zinc-800">デモ鍵で試す（管理者）</button>
+      <button id="demoPaid" class="text-[11px] px-2.5 py-1 rounded-full border border-zinc-700 hover:bg-zinc-800">デモ鍵で試す（有料）</button>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-b from-violet-900/20 via-transparent to-transparent pointer-events-none"></div>
+  <div class="absolute inset-0 grid-paper opacity-40 pointer-events-none"></div>
+  <div class="relative max-w-6xl mx-auto px-6 pt-10 md:pt-16 pb-10">
+    <div class="flex flex-col lg:flex-row gap-8 items-center">
+      <div class="flex-1">
+        <div class="inline-flex items-center gap-2 text-[11px] px-3 py-1 rounded-full border border-violet-500/30 bg-violet-500/10 text-violet-300">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> 100% Rust • Leptos CSR • nostr-sdk • Cloudflare Pages
+        </div>
+        <h1 class="pixel-font text-[18px] md:text-[30px] leading-[1.35] mt-4">
+          <span class="text-white">ASCIIで駆ける、</span><br/>
+          <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-violet-500">最後のゲーム。</span>
+        </h1>
+        <p class="mt-4 text-sm md:text-[15px] leading-relaxed text-zinc-300 max-w-xl">
+          ターミナルに広がるドット絵の王国。ジャンプ、コイン、クリボー。<br/>
+          フロントは <b>Leptos</b>、バックは <b>Nostr</b>。有料ステージは <b>NIP-44</b> で暗号化され、あなたの公開鍵だけが扉を開く。
+        </p>
+        <div class="mt-6 flex flex-wrap gap-3">
+          <a href="#play" class="px-6 py-3 rounded-full bg-white text-black font-black text-sm hover:bg-zinc-100 transition flex items-center gap-2">▶ 今すぐ遊ぶ <span class="text-xs font-normal text-zinc-600">無料 1-1</span></a>
+          <a href="#pricing" class="px-6 py-3 rounded-full border border-zinc-700 bg-zinc-900 hover:bg-zinc-800 text-sm font-bold flex items-center gap-2">有料プラン・サブスクを見る <span class="text-amber-400">★</span></a>
+        </div>
+        <div class="mt-6 flex flex-wrap gap-2 text-[11px]">
+          <span class="px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800">管理者特権: 公開鍵ホワイトリスト</span>
+          <span class="px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800">NIP-04 / NIP-44 対応</span>
+          <span class="px-2.5 py-1 rounded-full bg-zinc-900 border border-zinc-800">Stripe 連携</span>
+        </div>
+        <div class="mt-6 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/15 to-orange-600/15 p-4 flex gap-4 items-center">
+          <div class="w-10 h-10 rounded-xl bg-amber-500 grid place-items-center text-black font-black">★</div>
+          <div class="flex-1">
+            <p class="text-sm font-bold">有料会員で全ステージ解放 + 限定スキン</p>
+            <p class="text-xs text-zinc-400">月額 ¥980〜。Stripe決済後にあなたのnpubが自動登録。暗号化レベルを即時復号。</p>
+          </div>
+          <a href="#pricing" class="hidden sm:inline-flex px-4 py-2 rounded-full bg-amber-500 text-black text-xs font-black hover:bg-amber-400">詳細</a>
+        </div>
+      </div>
+      <div class="flex-1 w-full max-w-[520px]">
+        <div class="rounded-[20px] border border-zinc-800 bg-zinc-900/70 backdrop-blur p-3 shadow-2xl scanline">
+          <div class="flex items-center justify-between px-1 pb-2">
+            <div class="flex gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span><span class="w-3 h-3 rounded-full bg-amber-400"></span><span class="w-3 h-3 rounded-full bg-emerald-500"></span></div>
+            <span class="text-[10px] px-2 py-1 rounded-full bg-black border border-zinc-700 font-mono">last-game — Rust/WASM</span>
+            <span class="text-[10px] text-zinc-500 hidden sm:inline">60 FPS • Rust</span>
+          </div>
+          <pre class="game-pre bg-[#0b0e14] rounded-xl p-3 border border-zinc-800 whitespace-pre overflow-x-auto text-[11px]">┌──────────────────────────────────────┐
+│ SCORE 00420  COINS ○x12  1-1  ♥♥♥    │
+│      ○     ○           ■■■          │
+│    ■■■■  ■■■■    G    ■   ■  ○    │
+│                       ───          │
+│ M         ■■■         G    ■■■     │
+│ ──────────────────────────────────  │
+│ ▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓  │
+└──────────────────────────────────────┘
+  [←→] 移動  [Space] ジャンプ  [R] リセット</pre>
+          <div class="mt-3 grid grid-cols-3 gap-2 text-[11px]">
+            <div class="rounded-xl bg-black border border-zinc-800 p-2.5 text-center"><div class="text-zinc-500">Players</div><div class="font-bold">1,284</div></div>
+            <div class="rounded-xl bg-black border border-zinc-800 p-2.5 text-center"><div class="text-zinc-500">Relays</div><div class="font-bold">3 connected</div></div>
+            <div class="rounded-xl bg-black border border-zinc-800 p-2.5 text-center"><div class="text-zinc-500">Encrypted</div><div class="font-bold">NIP-44 ✓</div></div>
+          </div>
+        </div>
+        <p class="mt-2 text-center text-[11px] text-zinc-500">↑ 下のゲームは <b>RustエンジンをJSに移植したプレビュー</b>。本番は <code>src/game/engine.rs</code> がWASMで動きます</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="max-w-6xl mx-auto px-6 py-8 grid md:grid-cols-3 gap-6">
+  <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6"><div class="text-2xl">🎮</div><h3 class="mt-3 font-bold">100% Rust ASCII Mario</h3><p class="mt-2 text-sm text-zinc-400 leading-relaxed">物理演算・衝突判定・レベル生成まで純Rust。WASMで60FPS動作。</p></div>
+  <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6"><div class="text-2xl">🔐</div><h3 class="mt-3 font-bold">Nostr + NIP-44 暗号化</h3><p class="mt-2 text-sm text-zinc-400 leading-relaxed">有料レベルは公開鍵ごとに暗号化してリレー配信。無料ユーザーには復号不可。</p></div>
+  <div class="rounded-2xl border border-zinc-800 bg-zinc-900/50 p-6"><div class="text-2xl">💳</div><h3 class="mt-3 font-bold">Stripe サブスク</h3><p class="mt-2 text-sm text-zinc-400 leading-relaxed">決済後に npub が自動で有料会員リストに登録。Cloudflare Pagesで完結。</p></div>
+</section>
+
+<!-- PLAY -->
+<section id="play" class="max-w-6xl mx-auto px-4 md:px-6 py-8">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 class="pixel-font text-sm flex items-center gap-3"><span class="w-2 h-6 bg-red-500 inline-block"></span> ASCII MARIO <span id="levelBadge" class="text-[10px] px-2 py-1 rounded-full bg-emerald-500 text-black font-bold">FREE 1-1</span></h2>
+    <div class="flex gap-2 text-xs">
+      <button id="btnLevel1" class="px-3 py-1.5 rounded-full bg-white text-black font-bold">1-1 無料</button>
+      <button id="btnLevel2" class="px-3 py-1.5 rounded-full border border-zinc-700">1-2 有料 🔒</button>
+    </div>
+  </div>
+
+  <div id="gate" class="hidden mt-6 rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/15 to-orange-600/15 p-8 text-center">
+    <div class="w-12 h-12 mx-auto rounded-2xl bg-amber-500 grid place-items-center text-xl">🔒</div>
+    <h3 class="mt-4 font-black">このステージは NIP-44 で暗号化されています</h3>
+    <p class="mt-2 text-sm text-zinc-300 max-w-xl mx-auto leading-relaxed">有料会員の公開鍵だけが復号できます。<a href="#pricing" class="underline decoration-amber-500">有料プラン</a>でStripe決済（プレビューはモック）し、あなたの <code class="px-1 bg-black rounded">npub</code> を有料会員リストに登録してください。</p>
+    <div class="mt-4 flex justify-center gap-3">
+      <a href="#pricing" class="px-6 py-2.5 rounded-full bg-amber-500 text-black text-sm font-black">有料プランを見る</a>
+      <button id="gateFree" class="px-6 py-2.5 rounded-full border border-zinc-700 text-sm">無料 1-1 を遊ぶ</button>
+    </div>
+    <pre class="mt-6 text-left text-[11px] bg-black rounded-xl p-4 border border-zinc-800 overflow-x-auto whitespace-pre-wrap">{
+  "kind": 30078,
+  "d": "level-2",
+  "p": "&lt;your-pubkey-hex&gt;",
+  "content": "nip44:AgEf...7X9z==  ← 復号しないと読めません"
+}</pre>
+  </div>
+
+  <div id="gameWrap" class="mt-6 grid lg:grid-cols-[1fr_300px] gap-6">
+    <div class="rounded-[20px] border border-zinc-800 bg-zinc-900/60 p-3 md:p-4 scanline">
+      <div class="flex items-center justify-between text-xs mb-2">
+        <div class="flex gap-1.5"><span class="w-3 h-3 rounded-full bg-red-500"></span><span class="w-3 h-3 rounded-full bg-amber-400"></span><span class="w-3 h-3 rounded-full bg-emerald-500"></span></div>
+        <span id="tickInfo" class="font-mono text-zinc-500">tick 0 • 60 FPS • Rust (preview JS)</span>
+        <button id="btnPause" class="px-3 py-1 rounded-full border border-zinc-700 hover:bg-zinc-800">⏸ Pause (P)</button>
+      </div>
+      <pre id="gamePre" class="game-pre bg-[#0b0e14] rounded-xl p-2 md:p-3 border border-zinc-800 overflow-x-auto whitespace-pre select-none outline-none" tabindex="0"></pre>
+      <div class="mt-3 grid grid-cols-3 gap-2 md:hidden">
+        <button id="mLeft" class="py-3 rounded-xl bg-zinc-800 border border-zinc-700 active:bg-zinc-700 select-none touch-manipulation">◀</button>
+        <button id="mJump" class="py-3 rounded-xl bg-violet-600 border border-violet-500 active:bg-violet-500 font-bold select-none touch-manipulation">JUMP</button>
+        <button id="mRight" class="py-3 rounded-xl bg-zinc-800 border border-zinc-700 active:bg-zinc-700 select-none touch-manipulation">▶</button>
+      </div>
+      <div class="mt-3 flex flex-wrap gap-2 text-[11px] text-zinc-500">
+        <span class="px-2 py-1 rounded-full bg-black border border-zinc-800">[←→] 移動</span>
+        <span class="px-2 py-1 rounded-full bg-black border border-zinc-800">[Space] ジャンプ</span>
+        <span class="px-2 py-1 rounded-full bg-black border border-zinc-800">[R] リセット</span>
+        <span class="px-2 py-1 rounded-full bg-black border border-zinc-800">[P] ポーズ</span>
+        <span class="text-[10px] text-zinc-600">クリックでフォーカス → キー入力</span>
+      </div>
+    </div>
+    <div class="space-y-4">
+      <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5">
+        <h3 class="font-bold text-sm">ステータス</h3>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="rounded-xl bg-black border border-zinc-800 p-3"><div class="text-zinc-500">SCORE</div><div id="score" class="font-mono font-bold text-lg">0</div></div>
+          <div class="rounded-xl bg-black border border-zinc-800 p-3"><div class="text-zinc-500">COINS</div><div id="coins" class="font-mono font-bold text-lg">○ x0</div></div>
+          <div class="rounded-xl bg-black border border-zinc-800 p-3"><div class="text-zinc-500">LIVES</div><div id="lives" class="font-bold">♥♥♥</div></div>
+          <div class="rounded-xl bg-black border border-zinc-800 p-3"><div class="text-zinc-500">POS</div><div id="pos" class="font-mono text-xs">(2.0,11.0)</div></div>
+        </div>
+        <div id="msgWin" class="hidden mt-3 rounded-xl bg-emerald-500 text-black p-3 text-center font-black">🎉 GOAL! Rで再挑戦</div>
+        <div id="msgOver" class="hidden mt-3 rounded-xl bg-red-500 text-white p-3 text-center font-black">GAME OVER Rでリスタート</div>
+        <button id="btnReset" class="mt-3 w-full py-2.5 rounded-full bg-zinc-800 border border-zinc-700 text-xs font-bold hover:bg-zinc-700">↻ リセット (R)</button>
+      </div>
+      <div class="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-5">
+        <h3 class="font-bold text-sm">100% Rustで動いています（本番）</h3>
+        <p class="mt-2 text-xs leading-relaxed text-zinc-300">このプレビューはRustエンジンをJSに移植したもの。本番は <code class="px-1 bg-black rounded">src/game/engine.rs</code> がWASMで同じロジックを60FPSで実行。</p>
+        <pre class="mt-3 text-[11px] bg-black rounded-xl p-3 border border-zinc-800 overflow-x-auto">pub fn tick(&mut self, input: InputState) {
+  self.vel_y += GRAVITY; // 0.55
+  // 衝突, コイン, 敵, ゴール...
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GAMES -->
+<section id="games" class="max-w-6xl mx-auto px-6 py-8">
+  <h2 class="pixel-font text-sm mb-6 flex items-center gap-3"><span class="w-2 h-6 bg-red-500 inline-block"></span> GAMES</h2>
+  <div class="grid md:grid-cols-3 gap-6">
+    <a href="#play" class="group rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 hover:border-violet-600/40 transition block">
+      <span class="text-[10px] px-2 py-1 rounded-full bg-emerald-500 text-black font-bold">FREE</span>
+      <h3 class="pixel-font text-xs mt-3 leading-5">ASCII MARIO 1-1</h3>
+      <p class="mt-2 text-sm text-zinc-400">チュートリアル。誰でも遊べます。</p>
+      <span class="mt-3 inline-flex text-sm font-bold text-violet-400">Play →</span>
+    </a>
+    <a href="#play" id="cardL2" class="group rounded-2xl border border-zinc-800 bg-zinc-900/60 p-6 hover:border-amber-500/40 transition block">
+      <span class="text-[10px] px-2 py-1 rounded-full bg-amber-500 text-black font-bold">PREMIUM</span><span class="ml-2 text-xs text-zinc-500">🔒 NIP-44</span>
+      <h3 class="pixel-font text-xs mt-3 leading-5">ASCII MARIO 1-2</h3>
+      <p class="mt-2 text-sm text-zinc-400">星の洞窟。暗号化ステージ。</p>
+      <span class="mt-3 inline-flex text-sm font-bold text-violet-400">Play →</span>
+    </a>
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6 opacity-60">
+      <span class="text-[10px] px-2 py-1 rounded-full bg-red-500 text-white font-bold">GOD MODE</span>
+      <h3 class="pixel-font text-xs mt-3 leading-5">ASCII MARIO 1-3</h3>
+      <p class="mt-2 text-sm text-zinc-400">近日公開。管理者テスト中。</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing" class="max-w-6xl mx-auto px-6 py-10">
+  <div class="text-center max-w-2xl mx-auto">
+    <span class="inline-flex text-[11px] px-3 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300">有料プラン・サブスク広告</span>
+    <h2 class="pixel-font text-xl md:text-2xl mt-4">PRICING</h2>
+    <p class="mt-3 text-sm text-zinc-400 leading-relaxed">無料で1-1は遊べます。<b class="text-white">Stripe</b>で決済すると、あなたの公開鍵(<code class="px-1 bg-zinc-800 rounded text-xs">npub</code>)が<b class="text-white">有料会員リスト</b>に登録され、<b class="text-white">NIP-44</b>で暗号化された追加ステージが復号できます。</p>
+  </div>
+  <div class="mt-10 grid md:grid-cols-3 gap-6">
+    <div class="rounded-[20px] border border-zinc-800 bg-zinc-900/40 p-6 flex flex-col">
+      <h3 class="pixel-font text-[11px] text-zinc-400">FREE</h3>
+      <div class="mt-3 flex items-baseline gap-1"><span class="text-3xl font-black">¥0</span><span class="text-xs text-zinc-500">/ 永久</span></div>
+      <ul class="mt-4 space-y-2 text-sm text-zinc-300 flex-1">
+        <li>✓ ASCII MARIO 1-1 遊び放題</li><li>✓ コイン・スコア保存(ローカル)</li><li>✓ Nostrログイン不要</li>
+      </ul>
+      <a href="#play" class="mt-6 block text-center py-3 rounded-full bg-white text-black text-sm font-black">今すぐ遊ぶ</a>
+    </div>
+    <div class="rounded-[20px] border border-violet-500/40 bg-gradient-to-b from-violet-600/15 to-zinc-900/60 p-6 flex flex-col scale-[1.02] shadow-[0_0_24px_rgba(99,102,241,0.35)] relative">
+      <span class="absolute -top-3 right-4 text-[10px] px-2.5 py-1 rounded-full bg-amber-500 text-black font-black">人気</span>
+      <h3 class="pixel-font text-[11px] text-zinc-400">PREMIUM</h3>
+      <div class="mt-3 flex items-baseline gap-1"><span class="text-3xl font-black">¥980</span><span class="text-xs text-zinc-500">/ 月</span></div>
+      <ul class="mt-4 space-y-2 text-sm text-zinc-300 flex-1">
+        <li>✓ 全ステージ (1-2〜1-4) 解放</li><li>✓ NIP-44 暗号化レベルを復号</li><li>✓ 限定スキン & BGM</li><li>✓ 進捗をNostrで保存</li>
+      </ul>
+      <button id="buyPremium" class="mt-6 w-full py-3 rounded-full bg-violet-600 hover:bg-violet-500 text-white text-sm font-black">Premium に登録</button>
+    </div>
+    <div class="rounded-[20px] border border-zinc-800 bg-zinc-900/40 p-6 flex flex-col relative">
+      <span class="absolute -top-3 right-4 text-[10px] px-2.5 py-1 rounded-full bg-amber-500 text-black font-black">管理者推奨</span>
+      <h3 class="pixel-font text-[11px] text-zinc-400">GOD MODE</h3>
+      <div class="mt-3 flex items-baseline gap-1"><span class="text-3xl font-black">¥2,980</span><span class="text-xs text-zinc-500">/ 月</span></div>
+      <ul class="mt-4 space-y-2 text-sm text-zinc-300 flex-1">
+        <li>✓ Premium すべて +</li><li>✓ レベルエディタ & 自作面を暗号化配信</li><li>✓ 管理者特権の一部を付与 (β)</li>
+      </ul>
+      <button id="buyGod" class="mt-6 w-full py-3 rounded-full bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-sm font-bold">God Mode に登録</button>
+    </div>
+  </div>
+  <div id="pricingMsg" class="hidden mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-200"></div>
+  <div class="mt-8 grid md:grid-cols-2 gap-6">
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+      <h3 class="font-bold">💳 Stripe 決済フロー</h3>
+      <ol class="mt-3 list-decimal list-inside space-y-1 text-sm text-zinc-400">
+        <li>Nostrでログイン → 公開鍵を確定</li>
+        <li>「Premiumに登録」→ POST /api/create-checkout-session</li>
+        <li>Stripe Checkoutで決済 → webhook</li>
+        <li>Functionが pubkey を kind:30078 に publish</li>
+        <li>フロントは nip44::decryptでレベル復号</li>
+      </ol>
+      <p class="mt-3 text-xs text-zinc-500">プレビューはモック決済。CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID で本番デプロイします。</p>
+    </div>
+    <div class="rounded-2xl border border-violet-500/20 bg-violet-500/10 p-6">
+      <h3 class="font-bold">🔐 NIP-04 / NIP-44</h3>
+      <p class="mt-2 text-sm text-zinc-300 leading-relaxed">有料コンテンツは管理者の秘密鍵でNIP-44により各有料会員の公開鍵向けに暗号化。pタグで宛先指定。旧クライアント向けにNIP-04フォールバック。</p>
+      <pre class="mt-3 text-[11px] bg-black rounded-xl p-3 border border-zinc-800 overflow-x-auto">let ct = nip44::encrypt(&admin_secret, &paid_pubkey, level_json, None)?;
+let ev = EventBuilder::new(Kind::Custom(30078), ct, vec![Tag::public_key(paid_pubkey)]).to_event(&admin_keys)?;</pre>
+      <button id="mockPaidBtn" class="mt-3 text-xs px-3 py-1.5 rounded-full border border-violet-500/30 hover:bg-violet-500/20">🧪 モックで有料化を試す</button>
+    </div>
+  </div>
+</section>
+
+<!-- ADMIN -->
+<section id="admin" class="max-w-6xl mx-auto px-6 py-10">
+  <div class="flex items-center gap-3"><span class="w-2 h-6 bg-amber-500 inline-block"></span><h2 class="pixel-font text-sm">ADMIN — 管理者特権</h2><span class="text-[11px] px-2.5 py-1 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-300">公開鍵ホワイトリストで保護</span></div>
+  <div id="adminGate" class="mt-4 rounded-2xl border border-red-500/30 bg-red-500/10 p-6">
+    <h3 class="font-bold text-red-300">⛔ アクセス拒否（プレビュー）</h3>
+    <p class="mt-2 text-sm text-zinc-300">このページは公開鍵ホワイトリストに登録された管理者のみ。右上でデモ鍵（管理者）でログインするか、下のボタンで自分を管理者にしてください。</p>
+    <button id="makeAdmin" class="mt-4 px-4 py-2 rounded-full bg-amber-500 text-black text-xs font-black">🧪 自分を管理者にする（プレビュー）</button>
+  </div>
+  <div id="adminPanel" class="hidden mt-6 grid lg:grid-cols-2 gap-6">
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+      <h3 class="font-bold">有料会員リスト (kind:30078)</h3>
+      <p class="text-xs text-zinc-500">Stripe webhook後にここに追加。NIP-44で各鍵向けに暗号化配信。</p>
+      <div class="mt-4"><h4 class="text-xs font-bold tracking-widest text-zinc-400">ADMIN WHITELIST</h4><ul id="adminList" class="mt-2 space-y-1.5"></ul></div>
+      <div class="mt-4"><h4 class="text-xs font-bold tracking-widest text-zinc-400">PAID MEMBERS</h4><ul id="paidList" class="mt-2 space-y-1.5"></ul><p id="paidEmpty" class="text-xs text-zinc-500 mt-2">まだ有料会員がいません。</p></div>
+      <div class="mt-4 flex gap-2"><button id="addDummyPaid" class="text-xs px-3 py-1.5 rounded-full border border-zinc-700">+ ダミー追加</button><button id="clearPaid" class="text-xs px-3 py-1.5 rounded-full border border-zinc-700">クリア</button></div>
+    </div>
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+      <h3 class="font-bold">有料コンテンツを暗号化して配信</h3>
+      <label class="mt-4 block text-xs font-bold">レベルJSON (平文)</label>
+      <textarea id="plainText" rows="3" class="mt-1 w-full px-3 py-2 rounded-xl bg-black border border-zinc-700 text-xs font-mono">{"level":2,"name":"星の洞窟","blocks":[[1,1,1]],"coins":12}</textarea>
+      <label class="mt-3 block text-xs font-bold">宛先 公開鍵 (hex/npub)</label>
+      <input id="recipient" placeholder="npub1... または hex" class="mt-1 w-full px-3 py-2 rounded-xl bg-black border border-zinc-700 text-xs font-mono"/>
+      <div class="mt-3 flex gap-2"><button id="btnEncrypt" class="px-4 py-2 rounded-full bg-violet-600 text-white text-xs font-bold">🔐 NIP-44で暗号化</button><button id="btnDecrypt" class="px-4 py-2 rounded-full border border-zinc-700 text-xs">🔓 復号テスト</button></div>
+      <p id="encMsg" class="hidden mt-3 text-xs p-2.5 rounded-xl bg-black border border-zinc-800"></p>
+      <pre id="encOut" class="hidden mt-3 text-[10px] p-3 rounded-xl bg-black border border-zinc-800 overflow-x-auto break-all"></pre>
+      <pre id="decOut" class="hidden mt-3 text-xs p-3 rounded-xl bg-emerald-950 border border-emerald-800"></pre>
+    </div>
+  </div>
+  <div class="mt-6 rounded-2xl border border-zinc-800 bg-zinc-900/30 p-6">
+    <h3 class="font-bold text-sm">Stripe Webhook ログ (モック)</h3>
+    <pre class="mt-3 text-xs bg-black rounded-xl p-4 border border-zinc-800 overflow-x-auto">[webhook] POST /api/webhook — checkout.session.completed
+  → verify with STRIPE_WEBHOOK_SECRET
+  → publish to Nostr kind:30078 (paid list)
+  → 200 OK
+
+[pages] CLOUDFLARE_API_TOKEN=***  CLOUDFLARE_ACCOUNT_ID=***
+  → wrangler pages deploy dist --project-name=last-game</pre>
+  </div>
+</section>
+
+<!-- ABOUT -->
+<section id="about" class="max-w-6xl mx-auto px-6 py-10">
+  <span class="text-[11px] px-3 py-1 rounded-full border border-zinc-700 bg-zinc-900">About us</span>
+  <h2 class="pixel-font text-lg md:text-xl mt-4 leading-relaxed">私たちは、最後のゲームを作っています。</h2>
+  <p class="mt-4 text-sm text-zinc-400 max-w-2xl leading-relaxed">フロントは100% Rust (Leptos)、バックはNostrリレー、課金はStripe、配信はCloudflare Pages。すべての境界をRustの型でつなぎます。</p>
+  <div class="mt-8 grid md:grid-cols-3 gap-6">
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 border border-zinc-700 grid place-items-center font-bold">S</div><h3 class="mt-3 font-bold">Satoshi <span class="text-xs text-violet-400">Rust / Leptos</span></h3><p class="mt-2 text-sm text-zinc-400">WASMで60FPSを刻むゲームエンジン担当。</p></div>
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 border border-zinc-700 grid place-items-center font-bold">N</div><h3 class="mt-3 font-bold">Nakadai <span class="text-xs text-violet-400">Nostr / Crypto</span></h3><p class="mt-2 text-sm text-zinc-400">NIP-04/44 の暗号化とホワイトリスト設計。</p></div>
+    <div class="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6"><div class="w-10 h-10 rounded-full bg-gradient-to-br from-zinc-700 to-zinc-900 border border-zinc-700 grid place-items-center font-bold">C</div><h3 class="mt-3 font-bold">Clara <span class="text-xs text-violet-400">Stripe / Infra</span></h3><p class="mt-2 text-sm text-zinc-400">Cloudflare Pages と GitHub Actions をつなぐ。</p></div>
+  </div>
+  <div class="mt-8 rounded-2xl border border-zinc-800 bg-black p-6 overflow-x-auto">
+    <h3 class="font-bold text-sm">Architecture</h3>
+    <pre class="mt-3 text-[11px] text-zinc-300">Browser (Leptos WASM) ──WSS──▶ Nostr Relays ──► Encrypted Levels (kind:30078, p=paid_pubkey)
+        │                    ▲
+        │ Stripe Checkout    │ nip44::decrypt
+        └────► Cloudflare Pages Functions ──► verify → publish paid list
+                         └─► GitHub Actions (trunk build → cloudflare/pages-action)</pre>
+  </div>
+</section>
+
+<footer class="border-t border-zinc-800 bg-black/40">
+  <div class="max-w-6xl mx-auto px-6 py-8 grid md:grid-cols-4 gap-8 text-sm">
+    <div><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-lg bg-gradient-to-br from-red-500 to-violet-600 grid place-items-center font-black text-white text-xs">LG</div><span class="pixel-font text-[10px]">LAST-GAME</span></div><p class="mt-3 text-xs text-zinc-500">100% Rust ASCII Mario。Leptos × Nostr × Stripe × Cloudflare Pages.</p></div>
+    <div><h4 class="font-bold text-xs tracking-widest">NAVIGATION</h4><ul class="mt-3 space-y-1.5 text-zinc-400 text-xs"><li><a href="#games" class="hover:text-white">Games</a></li><li><a href="#play" class="hover:text-white">Play</a></li><li><a href="#pricing" class="hover:text-white">Pricing</a></li><li><a href="#about" class="hover:text-white">About us</a></li></ul></div>
+    <div><h4 class="font-bold text-xs tracking-widest">NOSTR</h4><ul class="mt-3 space-y-1.5 text-zinc-400 text-xs font-mono"><li>relay.damus.io</li><li>nos.lol</li><li>kind:30078</li><li>NIP-04 / NIP-44</li></ul></div>
+    <div><h4 class="font-bold text-xs tracking-widest">DEPLOY</h4><ul class="mt-3 space-y-1.5 text-zinc-400 text-xs"><li>Cloudflare Pages</li><li>GitHub Actions</li><li class="font-mono text-[11px]">CLOUDFLARE_API_TOKEN</li><li class="font-mono text-[11px]">CLOUDFLARE_ACCOUNT_ID</li></ul></div>
+  </div>
+  <div class="max-w-6xl mx-auto px-6 py-4 border-t border-zinc-800 flex flex-col md:flex-row justify-between gap-2 text-[11px] text-zinc-500"><span>© 2026 last-game. Built with Rust & Leptos. Preview JS mirrors Rust engine.</span><span>Rust source: src/game/engine.rs • nostr-sdk • leptos</span></div>
+</footer>
+
+<script>
+// ---------- Nostr mock + auth ----------
+const LS_PUB = "nostr_pubkey_hex";
+const LS_NPUB = "nostr_npub";
+const LS_ADMIN = "admin_list";
+const LS_PAID = "paid_list";
+let pubkeyHex = localStorage.getItem(LS_PUB);
+let npub = localStorage.getItem(LS_NPUB);
+let adminList = JSON.parse(localStorage.getItem(LS_ADMIN) || '["ede8d8c3b2e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3","ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"]');
+let paidList = JSON.parse(localStorage.getItem(LS_PAID) || '[]');
+function saveAdmin(){ localStorage.setItem(LS_ADMIN, JSON.stringify(adminList)); }
+function savePaid(){ localStorage.setItem(LS_PAID, JSON.stringify(paidList)); }
+function isAdmin(h){ if(!h) return false; h=h.toLowerCase(); return adminList.some(x=>x.toLowerCase()===h); }
+function isPaid(h){ if(!h) return false; h=h.toLowerCase(); return paidList.some(x=>x.toLowerCase()===h); }
+function simpleHashHex(s){ let h=0xcbf29ce484222325n; const M=0x100000001b3n; for(let i=0;i<s.length;i++){ h ^= BigInt(s.charCodeAt(i)); h = (h*M) & 0xFFFFFFFFFFFFFFFFn; } let hex=h.toString(16).padStart(16,'0'); return hex+hex+hex+hex; }
+function normalizeKey(input){
+  input=input.trim();
+  if(input.length===64 && /^[0-9a-fA-F]+$/.test(input)) return {hex:input.toLowerCase(), npub:'npub1'+input.slice(0,8)};
+  if(input.startsWith('npub1')) return {hex:simpleHashHex(input).slice(0,64), npub:input};
+  if(input.startsWith('nsec1')) { const hex=simpleHashHex(input).slice(0,64); return {hex, npub:'npub1'+hex.slice(0,12)}; }
+  throw new Error('hex(64) / npub1... / nsec1... のいずれかを入力してください');
+}
+function refreshAuthUI(){
+  const badgeAdmin=document.getElementById('badgeAdmin');
+  const badgePaid=document.getElementById('badgePaid');
+  const npubDisplay=document.getElementById('npubDisplay');
+  const btnLogin=document.getElementById('btnLogin');
+  const btnLogout=document.getElementById('btnLogout');
+  const adminGate=document.getElementById('adminGate');
+  const adminPanel=document.getElementById('adminPanel');
+  if(pubkeyHex){
+    const short=npub ? (npub.length>16? npub.slice(0,8)+'…'+npub.slice(-4):npub) : pubkeyHex.slice(0,8);
+    npubDisplay.textContent=short;
+    npubDisplay.classList.remove('hidden');
+    btnLogin.classList.add('hidden');
+    btnLogout.classList.remove('hidden');
+    if(isAdmin(pubkeyHex)) badgeAdmin.classList.remove('hidden'); else badgeAdmin.classList.add('hidden');
+    if(isPaid(pubkeyHex)) badgePaid.classList.remove('hidden'); else badgePaid.classList.add('hidden');
+    if(isAdmin(pubkeyHex)){ adminGate.classList.add('hidden'); adminPanel.classList.remove('hidden'); } else { adminGate.classList.remove('hidden'); adminPanel.classList.add('hidden'); }
+  } else {
+    npubDisplay.classList.add('hidden');
+    btnLogin.classList.remove('hidden');
+    btnLogout.classList.add('hidden');
+    badgeAdmin.classList.add('hidden');
+    badgePaid.classList.add('hidden');
+    adminGate.classList.remove('hidden');
+    adminPanel.classList.add('hidden');
+  }
+  renderLevelGate();
+  refreshLists();
+}
+function refreshLists(){
+  const adminUl=document.getElementById('adminList');
+  const paidUl=document.getElementById('paidList');
+  const paidEmpty=document.getElementById('paidEmpty');
+  adminUl.innerHTML=adminList.map(k=>`<li class="text-xs font-mono px-2.5 py-1.5 rounded-lg bg-black border border-zinc-800 flex justify-between"><span>${k.slice(0,16)}…</span><span class="text-amber-400">👑 admin</span></li>`).join('');
+  if(paidList.length===0){ paidUl.innerHTML=''; paidEmpty.classList.remove('hidden'); } else { paidEmpty.classList.add('hidden'); paidUl.innerHTML=paidList.map(k=>`<li class="text-xs font-mono px-2.5 py-1.5 rounded-lg bg-black border border-zinc-800 flex justify-between"><span>${k.slice(0,16)}…</span><span class="text-violet-400">★ paid</span></li>`).join(''); }
+}
+document.getElementById('btnLogin').onclick=()=> document.getElementById('loginModal').classList.remove('hidden');
+document.getElementById('loginClose').onclick=()=> document.getElementById('loginModal').classList.add('hidden');
+document.getElementById('loginSubmit').onclick=()=>{
+  const v=document.getElementById('loginInput').value;
+  const err=document.getElementById('loginError');
+  try{
+    const {hex,npub:n} = normalizeKey(v);
+    pubkeyHex=hex; npub=n;
+    localStorage.setItem(LS_PUB, hex); localStorage.setItem(LS_NPUB, n);
+    document.getElementById('loginModal').classList.add('hidden');
+    err.classList.add('hidden');
+    refreshAuthUI();
+  }catch(e){ err.textContent=e.message; err.classList.remove('hidden'); }
+};
+document.getElementById('demoLogin').onclick=()=>{
+  const hex='ede8d8c3b2e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3';
+  pubkeyHex=hex; npub='npub1demoAdmin000'; localStorage.setItem(LS_PUB,hex); localStorage.setItem(LS_NPUB,npub); document.getElementById('loginModal').classList.add('hidden'); refreshAuthUI();
+};
+document.getElementById('demoPaid').onclick=()=>{
+  const hex='aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+  pubkeyHex=hex; npub='npub1demoPaid000'; localStorage.setItem(LS_PUB,hex); localStorage.setItem(LS_NPUB,npub); if(!paidList.includes(hex)){ paidList.push(hex); savePaid(); } document.getElementById('loginModal').classList.add('hidden'); refreshAuthUI();
+};
+document.getElementById('btnLogout').onclick=()=>{ localStorage.removeItem(LS_PUB); localStorage.removeItem(LS_NPUB); pubkeyHex=null; npub=null; refreshAuthUI(); };
+document.getElementById('makeAdmin').onclick=()=>{ if(pubkeyHex){ if(!adminList.some(x=>x.toLowerCase()===pubkeyHex.toLowerCase())){ adminList.push(pubkeyHex); saveAdmin(); } refreshAuthUI(); } else alert('先にログインしてください'); };
+document.getElementById('addDummyPaid').onclick=()=>{ const h='f'.repeat(64); if(!paidList.includes(h)){ paidList.push(h); savePaid(); refreshLists(); } };
+document.getElementById('clearPaid').onclick=()=>{ paidList=[]; savePaid(); refreshLists(); renderLevelGate(); };
+document.getElementById('mockPaidBtn').onclick=()=>{ if(pubkeyHex){ if(!paidList.includes(pubkeyHex)){ paidList.push(pubkeyHex); savePaid(); } document.getElementById('pricingMsg').textContent='✓ ローカルで有料化しました。#play の 1-2 が遊べます。'; document.getElementById('pricingMsg').classList.remove('hidden'); refreshAuthUI(); } else alert('先にログインしてください'); };
+document.getElementById('buyPremium').onclick=async()=>{
+  if(!pubkeyHex){ document.getElementById('pricingMsg').textContent='先に右上の「Nostrでログイン」で鍵を登録してください。'; document.getElementById('pricingMsg').classList.remove('hidden'); return; }
+  document.getElementById('buyPremium').textContent='処理中…'; document.getElementById('buyPremium').disabled=true;
+  // mock fetch
+  await new Promise(r=>setTimeout(r,600));
+  if(!paidList.includes(pubkeyHex)){ paidList.push(pubkeyHex); savePaid(); }
+  document.getElementById('pricingMsg').textContent=`✓ PREMIUM が有効になりました！ (モック) — 公開鍵 ${pubkeyHex.slice(0,8)} が有料会員リストに登録され、NIP-44で暗号化されたレベルが復号可能になりました。 #play の 1-2 をお試しください。`;
+  document.getElementById('pricingMsg').classList.remove('hidden');
+  document.getElementById('buyPremium').textContent='Premium に登録'; document.getElementById('buyPremium').disabled=false;
+  refreshAuthUI();
+};
+document.getElementById('buyGod').onclick=async()=>{
+  if(!pubkeyHex){ document.getElementById('pricingMsg').textContent='先にログインしてください。'; document.getElementById('pricingMsg').classList.remove('hidden'); return; }
+  document.getElementById('buyGod').textContent='処理中…';
+  await new Promise(r=>setTimeout(r,700));
+  if(!paidList.includes(pubkeyHex)) paidList.push(pubkeyHex);
+  if(!adminList.includes(pubkeyHex)) adminList.push(pubkeyHex);
+  savePaid(); saveAdmin();
+  document.getElementById('pricingMsg').textContent=`✓ GOD MODE 有効！ Premium + 管理者特権(β) が付与されました。`;
+  document.getElementById('pricingMsg').classList.remove('hidden');
+  document.getElementById('buyGod').textContent='God Mode に登録';
+  refreshAuthUI();
+};
+
+// encryption demo
+function xorCipher(input,key){ const kb=new TextEncoder().encode(key); const ib=new TextEncoder().encode(input); const out=new Uint8Array(ib.length); for(let i=0;i<ib.length;i++) out[i]=ib[i]^kb[i%kb.length]; return Array.from(out).map(b=>b.toString(16).padStart(2,'0')).join(''); }
+function xorDecipher(hex,key){ const kb=new TextEncoder().encode(key); const bytes=hex.match(/.{2}/g).map(h=>parseInt(h,16)); const out=new Uint8Array(bytes.length); for(let i=0;i<bytes.length;i++) out[i]=bytes[i]^kb[i%kb.length]; return new TextDecoder().decode(out); }
+const DEMO_KEY="last-game-nip44-demo-key-32bytes!!";
+document.getElementById('btnEncrypt').onclick=()=>{
+  const pt=document.getElementById('plainText').value;
+  const recip=document.getElementById('recipient').value.trim();
+  const msg=document.getElementById('encMsg');
+  if(!recip){ msg.textContent='宛先の公開鍵を入力してください'; msg.classList.remove('hidden'); return; }
+  const ct='nip44:'+xorCipher(pt,DEMO_KEY);
+  document.getElementById('encOut').textContent=ct; document.getElementById('encOut').classList.remove('hidden');
+  msg.textContent='✓ 暗号化成功 — この内容を kind:30078 でリレーにpublishします (モック)'; msg.classList.remove('hidden');
+  document.getElementById('btnDecrypt').dataset.ct=ct;
+};
+document.getElementById('btnDecrypt').onclick=()=>{
+  const ct=document.getElementById('btnDecrypt').dataset.ct || document.getElementById('encOut').textContent;
+  if(!ct) return;
+  const payload=ct.startsWith('nip44:')?ct.slice(6):ct;
+  try{ const pt=xorDecipher(payload,DEMO_KEY); document.getElementById('decOut').textContent=pt; document.getElementById('decOut').classList.remove('hidden'); }catch(e){ document.getElementById('encMsg').textContent='復号失敗: '+e.message; }
+};
+
+// ---------- GAME ENGINE (JS port of Rust engine) ----------
+const VIEW_W=40, VIEW_H=18, GRAVITY=0.55, JUMP_VEL=-10.5, MOVE_SPEED=2.2, FRICTION=0.85, MAX_FALL=12;
+function makeLevel1(){
+  const w=80,h=16;
+  const tiles=Array.from({length:h},()=>Array(w).fill(0));
+  for(let x=0;x<w;x++){ tiles[h-2][x]=1; tiles[h-1][x]=1; }
+  tiles[h-2][18]=0; tiles[h-1][18]=0; tiles[h-2][19]=0; tiles[h-1][19]=0;
+  tiles[h-2][45]=0; tiles[h-1][45]=0; tiles[h-2][46]=0; tiles[h-1][46]=0;
+  for(let x=6;x<10;x++) tiles[10][x]=2; tiles[10][7]=4; tiles[9][8]=4;
+  for(let x=14;x<17;x++) tiles[8][x]=2; tiles[8][15]=4;
+  for(let x=22;x<26;x++) tiles[10][x]=2;
+  for(let x=30;x<34;x++) tiles[7][x]=2; tiles[7][31]=4;
+  tiles[12][26]=3; tiles[13][26]=3; tiles[12][27]=3; tiles[13][27]=3;
+  tiles[11][50]=3; tiles[12][50]=3; tiles[13][50]=3; tiles[11][51]=3; tiles[12][51]=3; tiles[13][51]=3;
+  tiles[13][12]=5; tiles[13][32]=5; tiles[13][55]=5;
+  tiles[12][9]=4; tiles[12][20]=4; tiles[9][23]=4; tiles[6][31]=4;
+  tiles[10][74]=9; tiles[11][74]=9; tiles[12][74]=9; tiles[13][74]=9; tiles[9][74]=2;
+  return {name:'1-1',width:w,height:h,tiles,spawn:[2,11]};
+}
+function makeLevel2(){
+  const l=makeLevel1(); l.name='1-2 Premium - 星の洞窟';
+  for(let x=10;x<15;x++) l.tiles[5][x]=2;
+  for(let y=6;y<12;y++) l.tiles[y][12]=1;
+  l.tiles[6][20]=4; l.tiles[6][21]=4; l.tiles[5][20]=2;
+  l.tiles[13][40]=5; l.tiles[13][41]=5;
+  return l;
+}
+const LEVEL1=makeLevel1(), LEVEL2=makeLevel2();
+function tileAt(level,x,y){ if(x<0||y<0||x>=level.width||y>=level.height) return 1; return level.tiles[y][x]; }
+function isSolid(level,x,y){ const t=tileAt(level,x,y); return t===1||t===2||t===3; }
+
+class GameState{
+  constructor(level){ this.level=JSON.parse(JSON.stringify(level)); // deep clone for mutable
+    this.level.tiles=level.tiles.map(r=>[...r]);
+    this.level.name=level.name; this.level.width=level.width; this.level.height=level.height; this.level.spawn=[...level.spawn];
+    this.x=level.spawn[0]; this.y=level.spawn[1]; this.vx=0; this.vy=0; this.onGround=false;
+    this.score=0; this.coins=0; this.lives=3; this.won=false; this.gameOver=false; this.cam=0;
+    this.coinEnts=[]; this.enemies=[];
+    for(let y=0;y<level.height;y++) for(let x=0;x<level.width;x++){
+      const t=level.tiles[y][x];
+      if(t===4) this.coinEnts.push({x,y,taken:false});
+      if(t===5) this.enemies.push({x:x+0.5,y,dir:-1,alive:true});
+    }
+    // remove spawn markers from tiles for rendering (keep coins/enemies as entities)
+    for(let y=0;y<this.level.height;y++) for(let x=0;x<this.level.width;x++) if(this.level.tiles[y][x]===4||this.level.tiles[y][x]===5) this.level.tiles[y][x]=0;
+  }
+  reset(level){
+    const n=new GameState(level); Object.assign(this,n);
+  }
+  tick(inp){
+    if(this.won||this.gameOver) return;
+    if(inp.left && !inp.right) this.vx=-MOVE_SPEED;
+    else if(inp.right && !inp.left) this.vx=MOVE_SPEED;
+    else { this.vx*=FRICTION; if(Math.abs(this.vx)<0.05) this.vx=0; }
+    if(inp.jump && this.onGround){ this.vy=JUMP_VEL; this.onGround=false; }
+    this.vy+=GRAVITY; if(this.vy>MAX_FALL) this.vy=MAX_FALL;
+    // move X
+    let nx=this.x+this.vx*0.18;
+    let y=this.y|0, nxi=nx|0;
+    if(!isSolid(this.level,nxi,y) && !isSolid(this.level,nxi,y+1) && !isSolid(this.level,nxi,(this.y+0.9)|0)){
+      this.x=nx;
+    } else this.vx=0;
+    // move Y
+    let ny=this.y+this.vy*0.12;
+    let x=this.x|0, nyi=ny|0;
+    let head=isSolid(this.level,x,nyi);
+    let feet=isSolid(this.level,x,(ny+1)|0);
+    let nextFeet=isSolid(this.level,x,(ny+1.1)|0);
+    if(this.vy<0){
+      if(head){
+        this.vy=0;
+        if(tileAt(this.level,x,nyi)===2){
+          this.level.tiles[nyi][x]=0; this.coins++; this.score+=50;
+        }
+      } else { this.y=ny; this.onGround=false; }
+    } else {
+      if(feet||nextFeet){
+        this.y=Math.floor(nyi); // snap
+        let ground=Math.floor(ny+1)-1; if(this.y>ground) this.y=ground;
+        this.vy=0; this.onGround=true;
+      } else { this.y=ny; this.onGround=false; }
+    }
+    this.x=Math.max(0.5,Math.min(this.level.width-0.5,this.x));
+    this.cam=Math.max(0,Math.min(this.level.width-VIEW_W, this.x - VIEW_W/2.5));
+    // coins
+    for(let c of this.coinEnts) if(!c.taken && Math.abs(c.x-this.x)<0.7 && Math.abs(c.y-this.y)<0.7){ c.taken=true; this.coins++; this.score+=100; }
+    // enemies
+    for(let e of this.enemies){ if(!e.alive) continue;
+      e.x+=e.dir*0.6;
+      let tx=(e.x+e.dir*0.6)|0, ty=e.y|0;
+      if(isSolid(this.level,tx,ty)||isSolid(this.level,tx,ty+1)) e.dir*=-1;
+      let dx=Math.abs(e.x-this.x), dy=e.y-this.y;
+      if(dx<0.8 && Math.abs(dy)<0.9){
+        if(this.vy>0 && dy>0.1){ e.alive=false; this.vy=JUMP_VEL*0.55; this.score+=200; }
+        else {
+          this.lives--; if(this.lives<=0) this.gameOver=true;
+          else { this.x=this.level.spawn[0]; this.y=this.level.spawn[1]; this.vx=0; this.vy=0; }
+        }
+      }
+    }
+    let px=this.x|0, py=this.y|0;
+    if(tileAt(this.level,px,py)===9 || tileAt(this.level,px,py+1)===9){ this.won=true; this.score+=1000; }
+    if(this.y>this.level.height+5){ this.lives--; if(this.lives<=0) this.gameOver=true; else { this.x=this.level.spawn[0]; this.y=this.level.spawn[1]; this.vx=0; this.vy=0; } }
+  }
+}
+
+function renderAscii(state){
+  let out='';
+  const livesStr='♥'.repeat(Math.max(0,state.lives))+'♡'.repeat(Math.max(0,3-state.lives));
+  const header=` SCORE ${String(state.score).padStart(5,'0')}  COINS ○x${String(state.coins).padStart(2,'0')}  ${state.level.name}  ${livesStr}  ${state.won?'★GOAL★':state.gameOver?'GAME OVER':''} `;
+  out+=`┌${'─'.repeat(VIEW_W)}┐\n`;
+  const pad=Math.max(0,Math.floor((VIEW_W-header.length)/2));
+  out+=`│${' '.repeat(pad)}${header}${' '.repeat(VIEW_W-pad-header.length)}│\n`;
+  const cam=state.cam|0;
+  for(let vy=0; vy<VIEW_H; vy++){
+    out+='│';
+    for(let vx=0; vx<VIEW_W; vx++){
+      const tx=cam+vx, ty=vy;
+      const px=state.x|0, py=state.y|0;
+      const isPlayer=(px===tx && py===ty) || (px===tx && py+1===ty);
+      let coinHere=false; for(let c of state.coinEnts) if(!c.taken && c.x===tx && c.y===ty) coinHere=true;
+      let enemyHere=false; for(let e of state.enemies) if(e.alive && (e.x|0)===tx && (e.y|0)===ty) enemyHere=true;
+      let ch;
+      if(isPlayer) ch='M';
+      else if(enemyHere) ch='G';
+      else if(coinHere) ch='○';
+      else {
+        const t=tileAt(state.level,tx,ty);
+        if(t===1) ch=(ty>=state.level.height-2?'▓':'═');
+        else if(t===2) ch='■';
+        else if(t===3) ch='█';
+        else if(t===9) ch='⚑';
+        else ch=' ';
+      }
+      out+=ch;
+    }
+    out+='│\n';
+  }
+  out+=`└${'─'.repeat(VIEW_W)}┘`;
+  return out;
+}
+
+// ---------- wiring ----------
+let currentLevel='1';
+let game=new GameState(LEVEL1);
+let inp={left:false,right:false,jump:false};
+let paused=false, tick=0;
+const pre=document.getElementById('gamePre');
+const elScore=document.getElementById('score'), elCoins=document.getElementById('coins'), elLives=document.getElementById('lives'), elPos=document.getElementById('pos');
+const msgWin=document.getElementById('msgWin'), msgOver=document.getElementById('msgOver'), tickInfo=document.getElementById('tickInfo');
+function setLevel(lv){
+  currentLevel=lv;
+  document.getElementById('levelBadge').textContent= lv==='2' ? 'PREMIUM 1-2' : 'FREE 1-1';
+  document.getElementById('levelBadge').className= lv==='2' ? 'text-[10px] px-2 py-1 rounded-full bg-amber-500 text-black font-bold' : 'text-[10px] px-2 py-1 rounded-full bg-emerald-500 text-black font-bold';
+  document.getElementById('btnLevel1').className= lv==='1' ? 'px-3 py-1.5 rounded-full bg-white text-black font-bold' : 'px-3 py-1.5 rounded-full border border-zinc-700';
+  document.getElementById('btnLevel2').className= lv==='2' ? 'px-3 py-1.5 rounded-full bg-amber-500 text-black font-bold' : 'px-3 py-1.5 rounded-full border border-zinc-700';
+  game.reset(lv==='2'?LEVEL2:LEVEL1);
+  renderLevelGate();
+  pre.focus();
+}
+function renderLevelGate(){
+  const gate=document.getElementById('gameWrap'), lock=document.getElementById('gate');
+  const needPaid=currentLevel==='2';
+  const has=isPaid(pubkeyHex);
+  if(needPaid && !has){ gate.classList.add('hidden'); lock.classList.remove('hidden'); }
+  else { gate.classList.remove('hidden'); lock.classList.add('hidden'); }
+}
+document.getElementById('btnLevel1').onclick=()=> setLevel('1');
+document.getElementById('btnLevel2').onclick=()=> setLevel('2');
+document.getElementById('gateFree').onclick=()=> setLevel('1');
+document.getElementById('btnReset').onclick=()=> game.reset(currentLevel==='2'?LEVEL2:LEVEL1);
+document.getElementById('btnPause').onclick=()=>{ paused=!paused; document.getElementById('btnPause').textContent=paused?'▶ Resume':'⏸ Pause (P)'; pre.focus(); };
+
+function handleKey(e, isDown){
+  const k=e.key;
+  if([' ','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(k)) e.preventDefault();
+  if(k==='ArrowLeft'||k==='a'||k==='A') inp.left=isDown;
+  if(k==='ArrowRight'||k==='d'||k==='D') inp.right=isDown;
+  if(k===' '||k==='ArrowUp'||k==='w'||k==='W') inp.jump=isDown;
+  if(k==='r'||k==='R'){ if(isDown) game.reset(currentLevel==='2'?LEVEL2:LEVEL1); }
+  if(k==='p'||k==='P'){ if(isDown){ paused=!paused; document.getElementById('btnPause').textContent=paused?'▶ Resume':'⏸ Pause (P)'; }}
+}
+pre.addEventListener('keydown', e=> handleKey(e,true));
+pre.addEventListener('keyup', e=> handleKey(e,false));
+window.addEventListener('keydown', e=>{ if(document.activeElement===pre) return; if([' ','ArrowLeft','ArrowRight','ArrowUp'].includes(e.key)) handleKey(e,true); });
+window.addEventListener('keyup', e=> handleKey(e,false));
+['mLeft','mRight','mJump'].forEach(id=>{
+  const el=document.getElementById(id);
+  const key=id==='mLeft'?'left':id==='mRight'?'right':'jump';
+  el.addEventListener('touchstart', e=>{ e.preventDefault(); inp[key]=true; });
+  el.addEventListener('touchend', e=>{ e.preventDefault(); inp[key]=false; });
+  el.addEventListener('mousedown', ()=> inp[key]=true);
+  el.addEventListener('mouseup', ()=> inp[key]=false);
+  el.addEventListener('mouseleave', ()=> inp[key]=false);
+});
+
+// loop
+setInterval(()=>{
+  if(paused) return;
+  if(currentLevel==='2' && !isPaid(pubkeyHex)) return;
+  game.tick(inp);
+  tick++;
+  pre.textContent=renderAscii(game);
+  elScore.textContent=String(game.score);
+  elCoins.textContent='○ x'+game.coins;
+  elLives.textContent='♥'.repeat(Math.max(0,game.lives))+'♡'.repeat(Math.max(0,3-game.lives));
+  elPos.textContent=`(${game.x.toFixed(1)},${game.y.toFixed(1)})`;
+  msgWin.classList.toggle('hidden', !game.won);
+  msgOver.classList.toggle('hidden', !game.gameOver);
+  tickInfo.textContent=`tick ${tick} • 60 FPS • Rust (preview JS port)`;
+  // consume jump (prevent auto-repeat)
+  // keep as is for hold
+}, 16);
+
+// init
+refreshAuthUI();
+pre.textContent=renderAscii(game);
+pre.focus();
+
+// smooth scroll for hash
+document.querySelectorAll('a[href^="#"]').forEach(a=>{
+  a.addEventListener('click', e=>{
+    const id=a.getAttribute('href').slice(1);
+    const el=document.getElementById(id);
+    if(el){ e.preventDefault(); el.scrollIntoView({behavior:'smooth', block:'start'}); history.replaceState(null,'','#'+id); }
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="100% Rust ASCII Mario — Leptos + Nostr + Stripe" />
+  <title>last-game — 100% Rust ASCII Mario</title>
+
+  <!-- Tailwind CDN (fallback) - build step will replace with compiled CSS if available -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { mono: ['JetBrains Mono','ui-monospace','SFMono-Regular','monospace'] },
+          colors: { ink: '#0a0a0a', paper: '#fefefe', mario: '#e52521', luigi: '#43b047' }
+        }
+      }
+    }
+  </script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <link data-trunk rel="css" href="style/main.css" />
+  <link data-trunk rel="copy-dir" href="public" />
+  <link rel="icon" href="/favicon.ico" />
+
+  <style>
+    :root { color-scheme: dark; }
+    body { background:#080a0f; color:#e6e6e6; font-family:'JetBrains Mono',ui-monospace,monospace; }
+    .pixel-font { font-family:'Press Start 2P',monospace; }
+    .scanline { position:relative; overflow:hidden; }
+    .scanline::after {
+      content:""; position:absolute; inset:0;
+      background: repeating-linear-gradient(0deg, rgba(255,255,255,0.03) 0px, transparent 2px, transparent 4px);
+      pointer-events:none;
+    }
+    /* ASCII game pre */
+    .game-pre {
+      line-height: 1.0;
+      letter-spacing: 0.02em;
+      font-size: 14px;
+      image-rendering: pixelated;
+      text-shadow: 0 0 8px rgba(99,102,241,0.35);
+    }
+    @media (max-width: 640px) { .game-pre { font-size: 10px; } }
+  </style>
+</head>
+<body>
+  <link data-trunk rel="rust" data-wasm-opt="z" data-weak-refs />
+  <noscript>
+    <div style="padding:2rem;text-align:center">
+      <p>このゲームは 100% Rust (WASM) で動いています。JavaScriptを有効にしてください。</p>
+    </div>
+  </noscript>
+</body>
+</html>

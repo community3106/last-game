@@ -1,0 +1,81 @@
+name: Deploy to Cloudflare Pages
+
+on:
+  push:
+    branches: [main, "arena/**"]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      - name: Rust cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Install Trunk
+        uses: jetli/trunk-action@v0.5.0
+        with:
+          version: 'latest'
+
+      - name: Install wasm-bindgen-cli (pinned)
+        run: cargo install wasm-bindgen-cli --version 0.2.92 --locked || true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package.json
+
+      - name: Install JS deps
+        run: npm ci || npm install
+
+      - name: Check format & clippy (non-blocking)
+        run: |
+          cargo fmt -- --check || true
+          cargo clippy --target wasm32-unknown-unknown -- -D warnings || true
+
+      - name: Build (Trunk → dist)
+        env:
+          ADMIN_PUBKEYS: ${{ secrets.ADMIN_PUBKEYS }}
+          NOSTR_RELAYS: ${{ secrets.NOSTR_RELAYS }}
+          STRIPE_PUBLISHABLE_KEY: ${{ secrets.STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          trunk build --release
+          ls -la dist
+          echo "Build done. dist size:"
+          du -sh dist || true
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: last-game
+          directory: dist
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          wranglerVersion: '3'
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "- Commit: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Pages project: last-game" >> $GITHUB_STEP_SUMMARY
+          echo "- Secrets required: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,21 @@
+/* 100% Rust ASCII Mario — Tailwind base + custom */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #2a2a3a; border-radius: 8px; }
+::-webkit-scrollbar-track { background: #0a0a0f; }
+
+/* Glow */
+.glow { box-shadow: 0 0 24px rgba(99,102,241,0.35), 0 0 60px rgba(236,72,153,0.15); }
+.glow-mario { box-shadow: 0 0 24px rgba(229,37,33,0.45); }
+
+/* Grid paper */
+.grid-paper {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

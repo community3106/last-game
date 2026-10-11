@@ -1,0 +1,28 @@
+name = "last-game"
+type = "javascript"
+compatibility_date = "2024-10-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Pages — dist をデプロイ
+# wrangler pages deploy dist --project-name=last-game
+
+[build]
+command = "cargo install trunk --locked 2>/dev/null; trunk build --release"
+# dist は Trunk が生成
+
+[site]
+bucket = "./dist"
+
+# Functions (Stripe & Nostr proxy) は ./functions に配置
+# - functions/api/create-checkout-session.js
+# - functions/api/verify-session.js
+# - functions/api/webhook.js
+# - functions/api/nostr-whitelist.js
+
+[vars]
+NOSTR_RELAYS = "wss://relay.damus.io,wss://nos.lol,wss://relay.nostr.band"
+PAID_LIST_KIND = "30078"
+
+# Secrets はダッシュボード or wrangler secret put で登録
+# CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID は GitHub Actions の Secrets で使用
+# STRIPE_SECRET_KEY / STRIPE_WEBHOOK_SECRET は `wrangler pages secret put` で登録
