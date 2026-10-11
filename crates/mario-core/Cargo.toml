@@ -1,0 +1,19 @@
+[package]
+name = "mario-core"
+description = "依存ゼロのピュア Rust ASCII プラットフォーマーエンジン / dependency-free ASCII platformer engine"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["game", "ascii", "platformer", "no-std", "wasm"]
+categories = ["game-engines", "games"]
+
+[dependencies]
+# 100% pure Rust: 依存クレートは意図的にゼロ / intentionally zero dependencies
+
+[features]
+default = []
+# 追加のデバッグ用描画 / extra debug rendering helpers
+debug-render = []

@@ -1,0 +1,31 @@
+[package]
+name = "nostr-vault"
+description = "公開鍵ホワイトリスト + NIP-04/NIP-44 暗号化による有料コンテンツ配信 / paid content delivery on Nostr"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+keywords = ["nostr", "nip44", "nip04", "paywall", "whitelist"]
+categories = ["cryptography", "web-programming"]
+
+[dependencies]
+nostr = { workspace = true, features = ["std", "nip04", "nip44"] }
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+
+# Stripe の Webhook 署名検証 (ネイティブ専用の機能)
+hmac = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+hex = { workspace = true, optional = true }
+
+[features]
+default = ["stripe"]
+# Stripe Webhook (HMAC-SHA256) を使うときに有効化する / enable Stripe webhook support
+stripe = ["dep:hmac", "dep:sha2", "dep:hex"]
+
+[dev-dependencies]
+mario-core.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

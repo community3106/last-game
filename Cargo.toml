@@ -1,0 +1,59 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/mario-core",
+    "crates/nostr-vault",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.81"
+license = "MIT"
+repository = "https://github.com/community3106/last-game"
+homepage = "https://github.com/community3106/last-game"
+authors = ["community3106"]
+
+[workspace.dependencies]
+# --- internal crates ---------------------------------------------------------
+mario-core = { path = "crates/mario-core", version = "0.1.0" }
+nostr-vault = { path = "crates/nostr-vault", version = "0.1.0" }
+
+# --- frontend (Leptos = "laptos") -------------------------------------------
+leptos = { version = "0.8", default-features = false }
+leptos_router = { version = "0.8", default-features = false }
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = "0.3"
+console_error_panic_hook = "0.1"
+
+# --- nostr (NIP-04 / NIP-44 / NIP-59) ---------------------------------------
+nostr = { version = "0.44", default-features = false }
+nostr-sdk = { version = "0.44", default-features = false }
+
+# --- misc -------------------------------------------------------------------
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", default-features = false }
+clap = { version = "4", features = ["derive", "env"] }
+anyhow = "1"
+thiserror = "2"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+hmac = "0.12"
+sha2 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# wasm builds are size sensitive: keep debug info out of the release artifact
+[profile.wasm-release]
+inherits = "release"
+opt-level = "z"

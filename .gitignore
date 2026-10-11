@@ -1,0 +1,28 @@
+# ---- Rust ----
+/target
+**/*.rs.bk
+*.pdb
+
+# ---- Trunk / wasm ----
+/apps/site/dist
+/apps/site/.trunk
+
+# ---- secrets & local state (絶対にコミットしない) ----
+.env
+.env.local
+*.nsec
+secret*.txt
+config/admin.keys.json
+config/members.whitelist.json
+packs/*.json
+!packs/*.example.json
+
+# ---- editors / OS ----
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# ---- 一時ファイル ----
+.dev/
+/tmp/
