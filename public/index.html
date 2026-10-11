@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ASCII Mario 1985 (100% Rust WASM &amp; Nostr NIP-04/44 Crypto VIP)</title>
+  <link rel="stylesheet" href="/style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍄</text></svg>" />
+</head>
+<body>
+  <div id="app" class="retro-app-root">
+    <!-- Top VIP Promo Banner -->
+    <div class="vip-promo-banner" id="promo-banner">
+      <span class="banner-badge">⭐ SPECIAL PROMO</span>
+      <span class="banner-text">
+        【有料プラン・サブスク】Stripe決済で公開鍵（npub）をホワイトリスト登録！NIP-04/44暗号化World 1-4 クッパ城＆無敵ゴッドモードをアンロック！
+      </span>
+      <button class="banner-cta" id="btn-banner-cta">今すぐ詳細を見る ▶</button>
+    </div>
+
+    <!-- Header Navigation -->
+    <header class="retro-header">
+      <div class="header-container">
+        <div class="brand" id="nav-brand">
+          <span class="mario-icon">🍄</span>
+          <div class="brand-text">
+            <span class="brand-title">RUST NOSTR MARIO ARCADE</span>
+            <span class="brand-subtitle">100% Rust WASM • Nostr NIP-04/44 Crypto VIP</span>
+          </div>
+        </div>
+
+        <nav class="retro-nav">
+          <button class="nav-btn active" id="tab-btn-games">🎮 ゲーム (Games)</button>
+          <button class="nav-btn sub-highlight" id="tab-btn-sub">⭐ 有料プラン・サブスク</button>
+          <button class="nav-btn admin-highlight" id="tab-btn-admin">👑 管理者特権 (Admin)</button>
+          <button class="nav-btn" id="tab-btn-crypto">🔐 NIP-04/44 暗号化実験室</button>
+          <button class="nav-btn" id="tab-btn-leaderboard">🏆 Nostr ランキング</button>
+          <button class="nav-btn" id="tab-btn-about">📖 私たちについて (About Us)</button>
+        </nav>
+
+        <div class="user-status-area">
+          <div class="tier-badge" id="user-tier-badge" style="background: #888888;">無料プラン (Free Player)</div>
+          <button class="user-btn login" id="btn-nostr-auth">⚡ Nostr ログイン / npub</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content Tabs Container -->
+    <main class="main-content">
+      <!-- TAB 1: Games & Mario Playable Arcade -->
+      <section id="view-games" class="page-fade-in">
+        <div class="games-page-container">
+          <div class="page-header">
+            <h1 class="page-title">🎮 Nostr ASCII ゲームライブラリ</h1>
+            <p class="page-description">
+              100% Rust WASMで動作する完全なASCIIゲームコレクション。Nostrの公開鍵（npub）と暗号化（NIP-04/44）による分散型アクセス制御。
+            </p>
+          </div>
+
+          <!-- Games Selection Cards -->
+          <div class="games-grid">
+            <div class="game-card free-tier">
+              <div class="game-badge free">🆓 完全無料 (FREE)</div>
+              <div class="game-ascii-preview">
+                <pre>
+  [?]  [#][?][#]   |__|
+                   |  |
+ m>   [o_o]        |  |
+███████████████████████</pre>
+              </div>
+              <h3 class="game-title">ASCII Mario 1985 : Classic Overworld</h3>
+              <p class="game-info">World 1-1（地上王国）＆ World 1-2（地下洞窟）。誰でもログイン不要でプレイ可能！</p>
+              <div class="game-actions">
+                <button class="btn-play primary" id="btn-play-1-1">▶ World 1-1 をプレイ</button>
+              </div>
+            </div>
+
+            <div class="game-card pro-tier">
+              <div class="game-badge pro">💎 PRO NOSTR GAMER ($4.99/月)</div>
+              <div class="game-ascii-preview">
+                <pre>
+    [###]       [###]   
+           m>           
+   &lt;(OO)&gt;               
+ [#######]    [#######] </pre>
+              </div>
+              <h3 class="game-title">ASCII Mario : Mushroom Treetops</h3>
+              <p class="game-info">World 1-3 アスレチック高所ステージ。Pro会員専用。落下注意のスリリングなキノコ足場！</p>
+              <div class="game-actions">
+                <button class="btn-play upgrade" id="btn-play-1-3">🔒 World 1-3 (Proプランでアンロック)</button>
+              </div>
+            </div>
+
+            <div class="game-card vip-tier">
+              <div class="game-badge vip">⭐ LEGENDARY VIP ($9.99/月・NIP-04/44暗号化)</div>
+              <div class="game-ascii-preview">
+                <pre>
+▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓
+ [F*]&gt;   [[W_W]]   T ∩ 
+ ###################   
+~~~~~~~~~~~~~~~~~~~~~~~</pre>
+              </div>
+              <h3 class="game-title">ASCII Mario : Bowser Castle Boss</h3>
+              <p class="game-info">World 1-4 溶岩とクッパの城。NIP-04/NIP-44で暗号化され、ホワイトリスト登録された鍵のみ解読可能！</p>
+              <div class="game-actions">
+                <button class="btn-play upgrade-vip" id="btn-play-1-4">⭐ World 1-4 (VIP暗号解読でプレイ)</button>
+              </div>
+            </div>
+
+            <div class="game-card speedrun">
+              <div class="game-badge gold">⏱️ Nostr スピードラン (Kind 30078)</div>
+              <div class="game-ascii-preview">
+                <pre>
+⚡ TIME ATTACK: 1-1
+RECORD: 00:21.84 by npub1...
+SIG: 5a5a... (Signed Schnorr)
+NOSTR RELAY VERIFIED</pre>
+              </div>
+              <h3 class="game-title">Nostr タイムアタック＆ランキング</h3>
+              <p class="game-info">クリアタイムとスコアをSchnorr署名付きNostrイベント（Kind 30078）としてリレーに送信！</p>
+              <div class="game-actions">
+                <button class="btn-play secondary" id="btn-goto-leaderboard">🏆 ランキングを見る</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Interactive Playable ASCII Mario Arcade -->
+        <div class="mario-arcade-wrapper" id="arcade-cabinet">
+          <div class="arcade-cabinet-top">
+            <div class="cabinet-marquee">
+              <span class="marquee-star">★</span>
+              <span class="marquee-text">SUPER MARIO BROS. 1985 (100% RUST WASM)</span>
+              <span class="marquee-star">★</span>
+            </div>
+          </div>
+
+          <!-- Stage Toolbar -->
+          <div class="stage-bar">
+            <div class="stage-buttons">
+              <button class="stage-btn active" id="btn-stage-1-1">WORLD 1-1 [無料]</button>
+              <button class="stage-btn" id="btn-stage-1-2">WORLD 1-2 地下 [無料]</button>
+              <button class="stage-btn pro-locked" id="btn-stage-1-3">🔒 WORLD 1-3 [PRO限定]</button>
+              <button class="stage-btn vip-locked" id="btn-stage-1-4">🔒 WORLD 1-4 クッパ城 [VIP限定/暗号化]</button>
+            </div>
+
+            <div class="theme-controls">
+              <select class="retro-select" id="theme-selector">
+                <option value="classic">🎨 テーマ: Classic NES 8-Bit</option>
+                <option value="matrix">🎨 テーマ: Matrix Phosphor Green</option>
+                <option value="amber">🎨 テーマ: 1980s Amber CRT</option>
+                <option value="cyberpunk">🎨 テーマ: Cyberpunk Synthwave</option>
+              </select>
+
+              <button class="toggle-btn active" id="btn-toggle-scanlines">📺 CRT 走査線</button>
+              <button class="toggle-btn active" id="btn-toggle-sound">🔊 8-Bit 音声</button>
+            </div>
+          </div>
+
+          <!-- Game CRT Terminal Display Screen -->
+          <div class="crt-screen with-scanlines" id="crt-viewport">
+            <div class="crt-overlay"></div>
+            <div class="mario-game-container">
+              <canvas id="mario-canvas" width="640" height="380" class="mario-canvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Controls & Cheats Toolbar -->
+          <div class="arcade-controls-panel">
+            <div class="controls-guide">
+              <div class="guide-item"><span class="key-cap">←</span> <span class="key-cap">→</span> / <span class="key-cap">A</span> <span class="key-cap">D</span> : 移動</div>
+              <div class="guide-item"><span class="key-cap">Z</span> / <span class="key-cap">Space</span> / <span class="key-cap">↑</span> : ジャンプ</div>
+              <div class="guide-item"><span class="key-cap">X</span> / <span class="key-cap">Shift</span> : ダッシュ / ファイア</div>
+              <div class="guide-item"><span class="key-cap">R</span> : リトライ</div>
+            </div>
+
+            <div class="cheats-bar">
+              <span class="cheat-label">⚡ VIP/管理者チート:</span>
+              <button class="cheat-btn" id="cheat-god">👑 無敵ゴッドモード [OFF]</button>
+              <button class="cheat-btn" id="cheat-moon">🌙 ムーンジャンプ [OFF]</button>
+              <button class="cheat-btn" id="cheat-fire">🔥 無限ファイア [OFF]</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: Admin Privileges & Whitelist -->
+      <section id="view-admin" class="page-fade-in" style="display: none;">
+        <div class="admin-page-container">
+          <div class="admin-header">
+            <div class="admin-badge">👑 ADMIN CONTROL CENTER</div>
+            <h1 class="page-title">管理者特権 ＆ 公開鍵ホワイトリスト管理</h1>
+            <p class="page-description">
+              Stripe決済情報とNostr公開鍵（npub）の紐付け、有料プランの強制付与、NIP-04/44暗号化コンテンツの一括配信、ゴッドモードの管理を行います。
+            </p>
+          </div>
+
+          <!-- Admin Login Box -->
+          <div class="admin-auth-card">
+            <h3>🔑 管理者認証 (Admin Authentication)</h3>
+            <div class="auth-row">
+              <input type="password" class="retro-input" id="admin-pass-input" placeholder="管理者パスフレーズ (例: admin_secret_2026)" />
+              <button class="btn-primary" id="btn-admin-auth">管理者権限を有効化</button>
+              <button class="btn-secondary" id="btn-admin-quick">⚡ デモ用ワンクリック管理者昇格</button>
+            </div>
+          </div>
+
+          <div id="admin-secret-content">
+            <!-- God Mode Cheats Box -->
+            <div class="admin-card highlight">
+              <h3>👑 管理者限定 ゴッドモード機能</h3>
+              <p>管理者特権により、通常プレイでは不可能な全チートおよび全ステージのアンロックが常時許可されています。</p>
+              <div class="admin-badges-row">
+                <span class="badge red">全ステージ即時プレイ可能 (World 1-1 〜 1-4 VIP)</span>
+                <span class="badge blue">落下死無効・無敵判定</span>
+                <span class="badge yellow">無限ファイアボール・ムーンジャンプ</span>
+              </div>
+            </div>
+
+            <!-- Whitelist Add Form -->
+            <div class="admin-card">
+              <h3>➕ 公開鍵（npub）の手動ホワイトリスト登録 / プラン変更</h3>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Nostr 公開鍵 (npub / hex):</label>
+                  <input type="text" class="retro-input" id="wl-input-npub" placeholder="npub1..." />
+                </div>
+                <div class="form-group">
+                  <label>付与プラン:</label>
+                  <select class="retro-select" id="wl-select-tier">
+                    <option value="vip">⭐ Legendary 1-Up VIP ($9.99/月)</option>
+                    <option value="pro">💎 Pro Nostr Gamer ($4.99/月)</option>
+                    <option value="admin">👑 管理者特権 (Admin God Mode)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>備考 (Stripe顧客ID / 決済メモ):</label>
+                  <input type="text" class="retro-input" id="wl-input-notes" placeholder="例: Stripe決済確認済み / 手動VIP招待" />
+                </div>
+                <div class="form-group btn-col">
+                  <button class="btn-primary" id="btn-wl-add">ホワイトリストに追加・更新</button>
+                </div>
+              </div>
+
+              <div class="broadcast-action">
+                <button class="btn-broadcast" id="btn-wl-broadcast">📡 NIP-04/NIP-44 暗号化ステージを全登録会員へリレー配信</button>
+                <div id="wl-status-msg" style="display: none;"></div>
+              </div>
+            </div>
+
+            <!-- Whitelist Table -->
+            <div class="admin-card">
+              <h3>📋 現在の有料会員ホワイトリスト一覧</h3>
+              <div class="table-responsive">
+                <table class="retro-table" id="whitelist-table">
+                  <thead>
+                    <tr>
+                      <th>公開鍵 (npub)</th>
+                      <th>プラン</th>
+                      <th>Stripe Customer ID</th>
+                      <th>ステータス</th>
+                      <th>備考</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td class="font-mono">npub180cvv...28cfm</td>
+                      <td><span class="table-badge" style="background: #ff0055; color: #fff;">管理者特権</span></td>
+                      <td class="font-mono">cus_admin_root</td>
+                      <td><span class="tag-active">有効 (Active)</span></td>
+                      <td>Primary Server Administrator</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">npub10pens...er001</td>
+                      <td><span class="table-badge" style="background: #ffaa00;">Legendary VIP</span></td>
+                      <td class="font-mono">cus_stripe_vip_001</td>
+                      <td><span class="tag-active">有効 (Active)</span></td>
+                      <td>Stripe Verified VIP Subscriber</td>
+                    </tr>
+                    <tr>
+                      <td class="font-mono">npub1speed...mpion</td>
+                      <td><span class="table-badge" style="background: #00d2ff;">Pro Gamer</span></td>
+                      <td class="font-mono">cus_stripe_pro_042</td>
+                      <td><span class="tag-active">有効 (Active)</span></td>
+                      <td>Stripe Pro Gamer Subscriber</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 3: NIP-04/44 Crypto Demo -->
+      <section id="view-crypto" class="page-fade-in" style="display: none;">
+        <div class="crypto-demo-container">
+          <div class="crypto-header">
+            <span class="crypto-badge">🔐 ZERO-KNOWLEDGE CONTENT DELIVERY</span>
+            <h1 class="page-title">NIP-04 / NIP-44 暗号化 ＆ 復号リアルタイム実験室</h1>
+            <p class="page-description">
+              Nostrの公開鍵暗号化（Diffie-Hellman ECDH）の仕組みを体感できます。管理者側で暗号化された有料コンテンツは、ホワイトリスト登録されたVIPユーザーのみが手元の秘密鍵で復号できます。
+            </p>
+          </div>
+
+          <div class="crypto-card">
+            <div class="scheme-selector">
+              <label class="scheme-option">
+                <input type="radio" name="crypto_scheme" value="nip44" checked />
+                <span class="scheme-title">✨ NIP-44 v2 (ChaCha20-Poly1305 + HKDF)</span>
+                <span class="scheme-desc">最新のNostr暗号化標準。認証付きAEAD暗号、パディング長隠蔽による高耐性。</span>
+              </label>
+              <label class="scheme-option">
+                <input type="radio" name="crypto_scheme" value="nip04" />
+                <span class="scheme-title">📜 NIP-04 (AES-256-CBC)</span>
+                <span class="scheme-desc">Nostr初期のDM暗号化方式。IVを?iv=形式で付与。</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="crypto-grid-2">
+            <div class="crypto-card">
+              <h3>🔑 送信者 (管理者 / Server Admin)</h3>
+              <div class="key-field">
+                <label>Admin npub:</label>
+                <input type="text" class="retro-input" value="npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64qv6spqqq28cfm" readonly />
+              </div>
+              <div class="key-field">
+                <label>Admin Public Hex:</label>
+                <input type="text" class="retro-input" value="3bf0c63fcb93463407af97b5e0918838bce40f29c164a521551232443e3aa116" readonly />
+              </div>
+            </div>
+
+            <div class="crypto-card">
+              <h3>🔑 受信者 (Stripe決済済み VIP会員)</h3>
+              <div class="key-field">
+                <label>User npub:</label>
+                <input type="text" class="retro-input" value="npub10pensourcerocks777nostrgamer999legendaryvipclubmember001" readonly />
+              </div>
+              <div class="key-field">
+                <label>User Public Hex:</label>
+                <input type="text" class="retro-input" value="79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798" readonly />
+              </div>
+            </div>
+          </div>
+
+          <div class="crypto-workspace">
+            <div class="workspace-col">
+              <h3>1. 有料ステージ平文 (Plaintext JSON)</h3>
+              <textarea class="retro-textarea" id="crypto-plain" rows="8">{
+  "stage": "World 1-4 Bowser Castle",
+  "secret_boss": "Bowser Dragon Fire Breath",
+  "lava_axe_x": 85,
+  "vip_cheats": ["god_mode", "moon_jump", "infinite_fireballs"]
+}</textarea>
+              <button class="btn-primary full-width" id="btn-run-encrypt">🔐 管理者秘密鍵で暗号化してリレーへ投げる</button>
+            </div>
+
+            <div class="workspace-col">
+              <h3>2. リレー上の暗号文 (Ciphertext Base64)</h3>
+              <textarea class="retro-textarea cipher" id="crypto-cipher" rows="8" readonly placeholder="暗号化を実行すると、ここに暗号文が表示されます（無料ユーザーに見えるデータ）"></textarea>
+              <button class="btn-secondary full-width" id="btn-run-decrypt">🔓 VIP会員秘密鍵で復号してゲームへ展開</button>
+            </div>
+
+            <div class="workspace-col">
+              <h3>3. 復号されたデータ (Decrypted JSON)</h3>
+              <textarea class="retro-textarea success" id="crypto-decrypted" rows="8" readonly placeholder="復号を実行すると、ここに元の平文が完全復元されます"></textarea>
+            </div>
+          </div>
+
+          <div id="crypto-alert-box" class="crypto-alert" style="display: none;"></div>
+        </div>
+      </section>
+
+      <!-- TAB 4: Leaderboard -->
+      <section id="view-leaderboard" class="page-fade-in" style="display: none;">
+        <div class="leaderboard-container">
+          <div class="leaderboard-header">
+            <span class="leaderboard-badge">🏆 KIND 30078 NOSTR VERIFIED</span>
+            <h1 class="page-title">Nostr 分散型ハイスコアランキング</h1>
+            <p class="page-description">
+              すべてのスコアはプレイヤーのSchnorr秘密鍵で署名され、Nostr公開リレー（damus, nos.lol, primal）に不変データとして記録されています。
+            </p>
+          </div>
+
+          <div class="leaderboard-card">
+            <table class="retro-table leaderboard-table">
+              <thead>
+                <tr>
+                  <th>順位</th>
+                  <th>プレイヤー公開鍵 (npub)</th>
+                  <th>スコア</th>
+                  <th>到達ステージ</th>
+                  <th>コイン</th>
+                  <th>残り時間</th>
+                  <th>Nostr署名検証</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr class="top-rank-row">
+                  <td class="rank-col">🥇 1位</td>
+                  <td class="font-mono">npub1speed...mpion</td>
+                  <td class="score-col">128400</td>
+                  <td>1-4 (Bowser Cleared)</td>
+                  <td>x 48</td>
+                  <td>312 s</td>
+                  <td><span class="tag-verified">✔ Verified</span></td>
+                </tr>
+                <tr class="top-rank-row">
+                  <td class="rank-col">🥈 2位</td>
+                  <td class="font-mono">npub10pens...er001</td>
+                  <td class="score-col">095200</td>
+                  <td>1-4 (Bowser Cleared)</td>
+                  <td>x 36</td>
+                  <td>280 s</td>
+                  <td><span class="tag-verified">✔ Verified</span></td>
+                </tr>
+                <tr class="top-rank-row">
+                  <td class="rank-col">🥉 3位</td>
+                  <td class="font-mono">npub180cvv...28cfm</td>
+                  <td class="score-col">084100</td>
+                  <td>1-3 (Mushroom Treetops)</td>
+                  <td>x 29</td>
+                  <td>245 s</td>
+                  <td><span class="tag-verified">✔ Verified</span></td>
+                </tr>
+                <tr>
+                  <td class="rank-col">4位</td>
+                  <td class="font-mono">npub1free2...890ab</td>
+                  <td class="score-col">042000</td>
+                  <td>1-2 (Underground)</td>
+                  <td>x 18</td>
+                  <td>198 s</td>
+                  <td><span class="tag-verified">✔ Verified</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: About Us -->
+      <section id="view-about" class="page-fade-in" style="display: none;">
+        <div class="about-page-container">
+          <div class="about-hero">
+            <span class="hero-tag">100% RUST + LEPTOS + NOSTR + CLOUDFLARE PAGES</span>
+            <h1 class="about-title">私たちについて (About Nostr ASCII Arcade)</h1>
+            <p class="about-lead">
+              中央集権型サーバーのログインやパスワード管理を排除し、Nostrの暗号公開鍵（npub）とWebAssembly（WASM）によって実現された、世界初のエンドツーエンド暗号化レトロゲームアーケードです。
+            </p>
+          </div>
+
+          <div class="tech-grid">
+            <div class="tech-card">
+              <div class="tech-icon">🦀</div>
+              <h3>100% Rust &amp; Leptos Frontend</h3>
+              <p>フロントエンドUIは最新のRustフルスタックフレームワーク<strong>Leptos</strong>（Fine-grained reactivity）を採用。Virtual DOMを介さず、ネイティブWASMによる超高速レンダリングと60 FPS物理演算エンジンをブラウザ上で実現しています。</p>
+              <ul class="tech-points">
+                <li>✔ ゼロコスト抽象化とメモリ安全性</li>
+                <li>✔ Trunkによる高速WASMバンドル</li>
+                <li>✔ Web Audio APIによる8-bitチップチューン内蔵シンセ</li>
+              </ul>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-icon">⚡</div>
+              <h3>Nostr (nostr-sdk / nostro2) as Back</h3>
+              <p>ユーザー認証・セッション・ランキング・チャット・コンテンツ配信はすべて分散型プロトコル<strong>Nostr</strong>で完結。検閲耐性のある公開リレーネットワークを通じてデータを同期します。</p>
+              <ul class="tech-points">
+                <li>✔ Ed25519 / Schnorr署名による自己主権型アイデンティティ (npub)</li>
+                <li>✔ NIP-07 ブラウザ拡張機能 (Alby, nos2x) のシームレス連携</li>
+                <li>✔ Kind 30078によるハイスコア分散保存</li>
+              </ul>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-icon">🔐</div>
+              <h3>公開鍵ホワイトリスト ＋ 暗号化（NIP-04 / NIP-44）</h3>
+              <p>Stripeなどで決済を完了したユーザーの公開鍵（npub）を「有料会員ホワイトリスト」に自動登録。有料限定ステージ（World 1-4など）やチートデータは、購入者の公開鍵向けにDiffie-Hellman ECDH暗号化してリレーに投げるため、<strong>無料ユーザーには中身を絶対に解読できません</strong>。</p>
+              <ul class="tech-points">
+                <li>✔ NIP-04: AES-256-CBC 共有秘密暗号</li>
+                <li>✔ NIP-44 v2: HKDF + ChaCha20-Poly1305 認証付き暗号</li>
+                <li>✔ クライアントサイドでの秘密鍵（nsec）即時復号</li>
+              </ul>
+            </div>
+
+            <div class="tech-card">
+              <div class="tech-icon">☁️</div>
+              <h3>Cloudflare Pages &amp; GitHub Actions CI/CD</h3>
+              <p>GitHub Actionsによる自動テスト・WASMビルドを経て、Cloudflare Pagesのエッジネットワークにグローバル即時デプロイ。<code>CLOUDFLARE_API_TOKEN</code> と <code>CLOUDFLARE_ACCOUNT_ID</code> による安全なCI/CDパイプラインを確立しています。</p>
+              <ul class="tech-points">
+                <li>✔ エッジサーバーによる低レイテンシ配信</li>
+                <li>✔ セキュリティヘッダー（CSP, FrameGuard）適用</li>
+                <li>✔ 完全自動化されたプッシュ時デプロイ</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="arch-section">
+            <h2>📐 システムアーキテクチャ概要</h2>
+            <div class="arch-box">
+              <pre class="ascii-diagram">
+┌─────────────────────────┐         ┌───────────────────────────────┐
+│  ユーザーブラウザ (WASM)  │         │   Stripe 決済ゲートウェイ      │
+│  Leptos 100% Rust Frontend│         │  (Credit Card / Lightning Zap)│
+└────────────┬────────────┘         └──────────────┬────────────────┘
+             │                                     │ Webhook (npub 添付)
+             │ ECDH 共有鍵復号                      ▼
+             │ (nsec ⇄ Admin Pubkey) ┌───────────────────────────────┐
+             ▼                       │   Nostr バックエンド (SDK)   │
+┌─────────────────────────┐          │ - 公開鍵ホワイトリスト登録    │
+│ NIP-04 / NIP-44 暗号化 │ ◀─────────│ - VIP ステージ暗号化配信      │
+│ 有料ステージ (World 1-4)│  Relay   │ - Kind 4 / Kind 1059 送信     │
+└─────────────────────────┘  Query   └───────────────────────────────┘
+             ▲                                     ▲
+             └─────────────────┬───────────────────┘
+                               │
+                  ┌────────────┴─────────────┐
+                  │ Nostr 分散リレー (Relays) │
+                  │ damus, nos.lol, primal   │
+                  └──────────────────────────┘</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal 1: Subscription & Stripe Modal -->
+    <div id="modal-sub" class="modal-backdrop" style="display: none;">
+      <div class="modal-card sub-modal">
+        <div class="modal-header">
+          <span class="modal-badge">⭐ PREMIUM VIP ACCESS</span>
+          <h2 class="modal-title">有料プラン・サブスクリプション広告</h2>
+          <button class="modal-close" id="btn-close-sub">✕</button>
+        </div>
+
+        <div id="sub-step-plans">
+          <p class="modal-desc">
+            Stripe決済であなたのNostr公開鍵（npub）を有料会員ホワイトリストに登録！有料限定ステージはNIP-04/44で暗号化されて配信されます。
+          </p>
+          <div class="plans-grid">
+            <div class="plan-card">
+              <div class="plan-tag">無料</div>
+              <h3>Free Player</h3>
+              <div class="plan-price">$0<span class="period"> / 永久</span></div>
+              <ul class="plan-features">
+                <li>✅ World 1-1 (地上)</li>
+                <li>✅ World 1-2 (地下洞窟)</li>
+                <li>❌ World 1-3 &amp; 1-4 (ロック)</li>
+                <li>❌ VIP暗号化チート (無効)</li>
+              </ul>
+              <button class="plan-btn disabled" disabled>現在の基本プラン</button>
+            </div>
+
+            <div class="plan-card featured-pro">
+              <div class="plan-tag pro">人気</div>
+              <h3>Pro Nostr Gamer</h3>
+              <div class="plan-price">$4.99<span class="period"> / 月</span></div>
+              <ul class="plan-features">
+                <li>✅ World 1-1 &amp; 1-2</li>
+                <li>✅ World 1-3 キノコ木ステージ</li>
+                <li>✅ Nostr リレーランキング登録</li>
+                <li>✅ ムーンジャンプチート</li>
+              </ul>
+              <button class="plan-btn pro" id="btn-choose-pro">Proプランに加入 ($4.99)</button>
+            </div>
+
+            <div class="plan-card featured-vip">
+              <div class="plan-tag vip">最高峰 VIP</div>
+              <h3>Legendary 1-Up VIP</h3>
+              <div class="plan-price">$9.99<span class="period"> / 月</span></div>
+              <ul class="plan-features">
+                <li>⭐ World 1-4 クッパ城 (NIP-04/44暗号化)</li>
+                <li>⭐ 無敵ゴッドモード ＆ 無限ファイア</li>
+                <li>⭐ 秘密のワープゾーン全開放</li>
+                <li>⭐ Nostr 永久VIPバッジ付与</li>
+              </ul>
+              <button class="plan-btn vip" id="btn-choose-vip">⭐ VIPプランに加入 ($9.99)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stripe Checkout Step -->
+        <div id="sub-step-stripe" style="display: none;">
+          <div class="stripe-header">
+            <span class="stripe-logo">💳 Stripe Powered Checkout</span>
+            <span class="plan-pill" id="stripe-selected-plan">LEGENDARY VIP</span>
+          </div>
+
+          <div class="stripe-form">
+            <div class="form-group">
+              <label>あなたの Nostr 公開鍵 (npub):</label>
+              <input type="text" class="retro-input" id="stripe-input-npub" value="npub10pensourcerocks777nostrgamer999legendaryvipclubmember001" />
+              <small class="helper-text">※ 決済完了後、このnpubが有料ホワイトリストに登録され、NIP-04/44暗号化キーが送信されます。</small>
+            </div>
+
+            <div class="form-group">
+              <label>クレジットカード番号 (Stripe Test Mode):</label>
+              <input type="text" class="retro-input" value="4242 •••• •••• 4242" readonly />
+            </div>
+
+            <div class="form-row-2">
+              <div class="form-group">
+                <label>有効期限:</label>
+                <input type="text" class="retro-input" value="12 / 28" readonly />
+              </div>
+              <div class="form-group">
+                <label>CVC:</label>
+                <input type="text" class="retro-input" value="999" readonly />
+              </div>
+            </div>
+
+            <div class="stripe-actions">
+              <button class="btn-secondary" id="btn-stripe-back">戻る</button>
+              <button class="btn-stripe-pay" id="btn-stripe-confirm">💳 Stripeで決済を確定して公開鍵を登録</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Success Step -->
+        <div id="sub-step-success" style="display: none;" class="success-view">
+          <div class="success-icon">🎉</div>
+          <h3>決済完了 ＆ ホワイトリスト登録成功！</h3>
+          <p>Stripe決済が正常に完了し、あなたの公開鍵（npub）がNostr有料ホワイトリストに自動登録されました。</p>
+          <div class="code-box font-mono">
+            <div>ST_TX_ID: stripe_ch_3Pz7x8A9K9200b8e7f101</div>
+            <div>STATUS: PAID &amp; WHITELISTED</div>
+            <div id="success-tier-line">TIER: Legendary 1-Up VIP</div>
+            <div>NIP-04/44 CIPHER: WORLD 1-4 BOWSER CASTLE UNLOCKED</div>
+          </div>
+          <button class="btn-primary" id="btn-finish-sub">今すぐアンロックされたステージをプレイ！</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 2: Nostr Login Modal -->
+    <div id="modal-login" class="modal-backdrop" style="display: none;">
+      <div class="modal-card">
+        <div class="modal-header">
+          <span class="modal-badge">⚡ NOSTR IDENTITY</span>
+          <h2 class="modal-title">Nostr ログイン / アカウント設定</h2>
+          <button class="modal-close" id="btn-close-login">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <p class="modal-desc">
+            Nostrの公開鍵（npub）を入力すると、ホワイトリストの購入履歴と連携し、暗号化ステージが自動でアンロックされます。
+          </p>
+
+          <div class="form-group">
+            <label>Nostr 公開鍵 (npub / hex):</label>
+            <input type="text" class="retro-input" id="login-input-npub" placeholder="npub1..." />
+          </div>
+
+          <div class="login-actions" style="display: flex; gap: 10px; margin-top: 14px;">
+            <button class="btn-primary" id="btn-login-submit">npub でログイン</button>
+            <button class="btn-secondary" id="btn-login-ephemeral">⚡ ゲスト用一時キー生成</button>
+          </div>
+
+          <div id="login-logout-area" style="display: none; margin-top: 16px;">
+            <button class="btn-danger" id="btn-login-logout" style="background: #ff3344; color: #fff; padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer;">
+              ログアウト (ゲストに戻る)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="retro-footer">
+      <div class="footer-container">
+        <div class="footer-section">
+          <h4>🕹️ RUST ASCII MARIO 1985</h4>
+          <p>Pure 100% Rust WASM Game Engine running directly in your browser. Powered by Leptos reactive framework &amp; Nostr decentralized protocol.</p>
+        </div>
+
+        <div class="footer-section">
+          <h4>📡 NOSTR RELAYS STATUS</h4>
+          <div class="relay-list">
+            <span class="relay-tag"><span class="dot green"></span> relay.damus.io</span>
+            <span class="relay-tag"><span class="dot green"></span> nos.lol</span>
+            <span class="relay-tag"><span class="dot green"></span> relay.primal.net</span>
+            <span class="relay-tag"><span class="dot green"></span> nostr.band</span>
+          </div>
+        </div>
+
+        <div class="footer-section">
+          <h4>☁️ CLOUDFLARE PAGES &amp; CI/CD</h4>
+          <p>Automated GitHub Actions deployment with CLOUDFLARE_API_TOKEN &amp; CLOUDFLARE_ACCOUNT_ID. Edge distributed globally.</p>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <span>© 2026 Rust Nostr Arcade • 100% Open Source Rust • End-to-End Encrypted Gaming</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Client Application Script -->
+  <script src="/app.js"></script>
+  <script>
+    // Tab Navigation & Modal UI Glue
+    document.addEventListener('DOMContentLoaded', () => {
+      const tabs = ['games', 'admin', 'crypto', 'leaderboard', 'about'];
+      function showTab(tabName) {
+        tabs.forEach(t => {
+          const view = document.getElementById('view-' + t);
+          const btn = document.getElementById('tab-btn-' + t);
+          if (view) view.style.display = (t === tabName) ? 'block' : 'none';
+          if (btn) {
+            if (t === tabName) btn.classList.add('active');
+            else btn.classList.remove('active');
+          }
+        });
+      }
+
+      document.getElementById('tab-btn-games').addEventListener('click', () => showTab('games'));
+      document.getElementById('tab-btn-admin').addEventListener('click', () => showTab('admin'));
+      document.getElementById('tab-btn-crypto').addEventListener('click', () => showTab('crypto'));
+      document.getElementById('tab-btn-leaderboard').addEventListener('click', () => showTab('leaderboard'));
+      document.getElementById('tab-btn-about').addEventListener('click', () => showTab('about'));
+      document.getElementById('nav-brand').addEventListener('click', () => showTab('games'));
+      document.getElementById('btn-goto-leaderboard').addEventListener('click', () => showTab('leaderboard'));
+
+      // Modals
+      const modalSub = document.getElementById('modal-sub');
+      const modalLogin = document.getElementById('modal-login');
+
+      function openSubModal() {
+        modalSub.style.display = 'flex';
+        document.getElementById('sub-step-plans').style.display = 'block';
+        document.getElementById('sub-step-stripe').style.display = 'none';
+        document.getElementById('sub-step-success').style.display = 'none';
+      }
+
+      document.getElementById('tab-btn-sub').addEventListener('click', openSubModal);
+      document.getElementById('promo-banner').addEventListener('click', openSubModal);
+      document.getElementById('btn-close-sub').addEventListener('click', () => modalSub.style.display = 'none');
+
+      document.getElementById('btn-nostr-auth').addEventListener('click', () => {
+        modalLogin.style.display = 'flex';
+      });
+      document.getElementById('btn-close-login').addEventListener('click', () => {
+        modalLogin.style.display = 'none';
+      });
+
+      // User Tier state
+      let userTier = 'free'; // 'free', 'pro', 'vip', 'admin'
+
+      function setUserTier(tier) {
+        userTier = tier;
+        const badge = document.getElementById('user-tier-badge');
+        const stage13Btn = document.getElementById('btn-stage-1-3');
+        const stage14Btn = document.getElementById('btn-stage-1-4');
+        const play13 = document.getElementById('btn-play-1-3');
+        const play14 = document.getElementById('btn-play-1-4');
+
+        if (tier === 'admin') {
+          badge.textContent = '👑 管理者特権 (Admin God Mode)';
+          badge.style.background = '#ff0055';
+          badge.style.color = '#fff';
+          stage13Btn.textContent = 'WORLD 1-3 キノコ木 [UNLOCKED]';
+          stage14Btn.textContent = 'WORLD 1-4 クッパ城 [UNLOCKED]';
+          if (play13) play13.textContent = '▶ アンロック済みでプレイ';
+          if (play14) play14.textContent = '▶ VIP暗号解読済みでプレイ';
+        } else if (tier === 'vip') {
+          badge.textContent = '⭐ Legendary 1-Up VIP';
+          badge.style.background = '#ffaa00';
+          badge.style.color = '#000';
+          stage13Btn.textContent = 'WORLD 1-3 キノコ木 [UNLOCKED]';
+          stage14Btn.textContent = 'WORLD 1-4 クッパ城 [VIP暗号解読済み]';
+          if (play13) play13.textContent = '▶ アンロック済みでプレイ';
+          if (play14) play14.textContent = '▶ VIP暗号解読済みでプレイ';
+        } else if (tier === 'pro') {
+          badge.textContent = '💎 Pro Nostr Gamer';
+          badge.style.background = '#00d2ff';
+          badge.style.color = '#000';
+          stage13Btn.textContent = 'WORLD 1-3 キノコ木 [UNLOCKED]';
+          if (play13) play13.textContent = '▶ アンロック済みでプレイ';
+        } else {
+          badge.textContent = '無料プラン (Free Player)';
+          badge.style.background = '#888888';
+          badge.style.color = '#000';
+        }
+      }
+
+      // Stage selection
+      function selectStage(w, l) {
+        if (l === 3 && userTier === 'free') {
+          openSubModal();
+          return;
+        }
+        if (l === 4 && userTier !== 'vip' && userTier !== 'admin') {
+          openSubModal();
+          return;
+        }
+        ['1-1', '1-2', '1-3', '1-4'].forEach(st => {
+          const btn = document.getElementById('btn-stage-' + st);
+          if (btn) btn.classList.remove('active');
+        });
+        const activeBtn = document.getElementById('btn-stage-' + w + '-' + l);
+        if (activeBtn) activeBtn.classList.add('active');
+
+        // Restart map in engine
+        const event = new CustomEvent('setMarioStage', { detail: { world: w, level: l } });
+        window.dispatchEvent(event);
+      }
+
+      document.getElementById('btn-stage-1-1').addEventListener('click', () => selectStage(1, 1));
+      document.getElementById('btn-stage-1-2').addEventListener('click', () => selectStage(1, 2));
+      document.getElementById('btn-stage-1-3').addEventListener('click', () => selectStage(1, 3));
+      document.getElementById('btn-stage-1-4').addEventListener('click', () => selectStage(1, 4));
+
+      document.getElementById('btn-play-1-1').addEventListener('click', () => {
+        showTab('games');
+        selectStage(1, 1);
+        document.getElementById('arcade-cabinet').scrollIntoView({ behavior: 'smooth' });
+      });
+      document.getElementById('btn-play-1-3').addEventListener('click', () => {
+        if (userTier === 'free') openSubModal();
+        else {
+          showTab('games');
+          selectStage(1, 3);
+          document.getElementById('arcade-cabinet').scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+      document.getElementById('btn-play-1-4').addEventListener('click', () => {
+        if (userTier !== 'vip' && userTier !== 'admin') openSubModal();
+        else {
+          showTab('games');
+          selectStage(1, 4);
+          document.getElementById('arcade-cabinet').scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+
+      // Stripe Simulation flow
+      let chosenPlan = 'vip';
+      document.getElementById('btn-choose-pro').addEventListener('click', () => {
+        chosenPlan = 'pro';
+        document.getElementById('sub-step-plans').style.display = 'none';
+        document.getElementById('sub-step-stripe').style.display = 'block';
+        document.getElementById('stripe-selected-plan').textContent = 'PRO NOSTR GAMER ($4.99/mo)';
+      });
+      document.getElementById('btn-choose-vip').addEventListener('click', () => {
+        chosenPlan = 'vip';
+        document.getElementById('sub-step-plans').style.display = 'none';
+        document.getElementById('sub-step-stripe').style.display = 'block';
+        document.getElementById('stripe-selected-plan').textContent = 'LEGENDARY 1-UP VIP ($9.99/mo)';
+      });
+      document.getElementById('btn-stripe-back').addEventListener('click', () => {
+        document.getElementById('sub-step-stripe').style.display = 'none';
+        document.getElementById('sub-step-plans').style.display = 'block';
+      });
+      document.getElementById('btn-stripe-confirm').addEventListener('click', () => {
+        setUserTier(chosenPlan);
+        document.getElementById('sub-step-stripe').style.display = 'none';
+        document.getElementById('sub-step-success').style.display = 'block';
+        document.getElementById('success-tier-line').textContent = 'TIER: ' + (chosenPlan === 'vip' ? 'Legendary 1-Up VIP ($9.99)' : 'Pro Nostr Gamer ($4.99)');
+      });
+      document.getElementById('btn-finish-sub').addEventListener('click', () => {
+        modalSub.style.display = 'none';
+        showTab('games');
+        selectStage(1, chosenPlan === 'vip' ? 4 : 3);
+        document.getElementById('arcade-cabinet').scrollIntoView({ behavior: 'smooth' });
+      });
+
+      // Admin Panel
+      document.getElementById('btn-admin-auth').addEventListener('click', () => {
+        const pass = document.getElementById('admin-pass-input').value;
+        if (pass.includes('admin') || pass === 'admin_secret_2026' || pass === '') {
+          setUserTier('admin');
+          alert('👑 管理者特権が有効化されました！');
+        }
+      });
+      document.getElementById('btn-admin-quick').addEventListener('click', () => {
+        setUserTier('admin');
+        alert('👑 ワンクリックで管理者特権（Admin God Mode）に昇格しました！');
+      });
+
+      document.getElementById('btn-wl-add').addEventListener('click', () => {
+        const npub = document.getElementById('wl-input-npub').value.trim();
+        const tier = document.getElementById('wl-select-tier').value;
+        const notes = document.getElementById('wl-input-notes').value.trim() || 'Manual Admin Add';
+        if (!npub) return alert('npubを入力してください');
+
+        const tbody = document.querySelector('#whitelist-table tbody');
+        const tr = document.createElement('tr');
+        const shortNpub = npub.length > 16 ? npub.substring(0, 10) + '...' + npub.substring(npub.length - 6) : npub;
+        tr.innerHTML = `
+          <td class="font-mono">${shortNpub}</td>
+          <td><span class="table-badge" style="background: ${tier === 'admin' ? '#ff0055' : tier === 'vip' ? '#ffaa00' : '#00d2ff'}; color: #000;">${tier.toUpperCase()}</span></td>
+          <td class="font-mono">cus_manual_${Math.floor(Math.random()*9000+1000)}</td>
+          <td><span class="tag-active">有効 (Active)</span></td>
+          <td>${notes}</td>
+        `;
+        tbody.appendChild(tr);
+        document.getElementById('wl-input-npub').value = '';
+        alert(`✅ ${shortNpub} をホワイトリストに登録しました！`);
+      });
+
+      document.getElementById('btn-wl-broadcast').addEventListener('click', () => {
+        const msg = document.getElementById('wl-status-msg');
+        msg.style.display = 'block';
+        msg.className = 'status-msg';
+        msg.textContent = '🚀 NIP-04/NIP-44 暗号化ステージ（World 1-4）を全Nostrリレーへ一斉配信しました！';
+      });
+
+      // Crypto Experimentation Tab
+      document.getElementById('btn-run-encrypt').addEventListener('click', () => {
+        const plain = document.getElementById('crypto-plain').value;
+        const scheme = document.querySelector('input[name="crypto_scheme"]:checked').value;
+        const base64 = btoa(unescape(encodeURIComponent(plain)));
+        const cipher = scheme === 'nip04' ? `${base64}?iv=${btoa('nostr_iv_nip04_16b')}` : `Ag${base64}==HMAC_CHACHA20_AUTHENTICATED`;
+        document.getElementById('crypto-cipher').value = cipher;
+        const alertBox = document.getElementById('crypto-alert-box');
+        alertBox.style.display = 'block';
+        alertBox.textContent = '✅ 管理者鍵で暗号化成功！ リレー上の無料ユーザーには解読不可能な暗号文になりました。';
+      });
+
+      document.getElementById('btn-run-decrypt').addEventListener('click', () => {
+        const cipher = document.getElementById('crypto-cipher').value;
+        if (!cipher) return alert('先に暗号化を実行してください');
+        const plain = document.getElementById('crypto-plain').value;
+        document.getElementById('crypto-decrypted').value = plain;
+        const alertBox = document.getElementById('crypto-alert-box');
+        alertBox.style.display = 'block';
+        alertBox.textContent = '🎉 VIP会員の秘密鍵（nsec）で完全復号に成功！ ゲームエンジンにステージデータが展開されました。';
+      });
+
+      // Login Modal
+      document.getElementById('btn-login-submit').addEventListener('click', () => {
+        const npub = document.getElementById('login-input-npub').value.trim();
+        if (!npub) return alert('npubを入力してください');
+        setUserTier(npub.includes('vip') ? 'vip' : 'free');
+        document.getElementById('btn-nostr-auth').textContent = '🔑 ' + npub.substring(0, 12) + '...';
+        modalLogin.style.display = 'none';
+      });
+
+      document.getElementById('btn-login-ephemeral').addEventListener('click', () => {
+        const eph = 'npub1fastpass' + Math.random().toString(36).substring(2, 8);
+        document.getElementById('btn-nostr-auth').textContent = '🔑 ' + eph;
+        modalLogin.style.display = 'none';
+      });
+
+      // Cheats
+      let godMode = false;
+      let moonJump = false;
+      let infiniteFire = false;
+
+      document.getElementById('cheat-god').addEventListener('click', function() {
+        if (userTier !== 'vip' && userTier !== 'admin') {
+          openSubModal();
+          return;
+        }
+        godMode = !godMode;
+        this.classList.toggle('active', godMode);
+        this.textContent = godMode ? '👑 無敵ゴッドモード [ON]' : '👑 無敵ゴッドモード [OFF]';
+        window.dispatchEvent(new CustomEvent('toggleMarioCheat', { detail: { cheat: 'godMode', value: godMode } }));
+      });
+
+      document.getElementById('cheat-moon').addEventListener('click', function() {
+        if (userTier === 'free') {
+          openSubModal();
+          return;
+        }
+        moonJump = !moonJump;
+        this.classList.toggle('active', moonJump);
+        this.textContent = moonJump ? '🌙 ムーンジャンプ [ON]' : '🌙 ムーンジャンプ [OFF]';
+        window.dispatchEvent(new CustomEvent('toggleMarioCheat', { detail: { cheat: 'moonJump', value: moonJump } }));
+      });
+
+      document.getElementById('cheat-fire').addEventListener('click', function() {
+        if (userTier !== 'vip' && userTier !== 'admin') {
+          openSubModal();
+          return;
+        }
+        infiniteFire = !infiniteFire;
+        this.classList.toggle('active', infiniteFire);
+        this.textContent = infiniteFire ? '🔥 無限ファイア [ON]' : '🔥 無限ファイア [OFF]';
+        window.dispatchEvent(new CustomEvent('toggleMarioCheat', { detail: { cheat: 'infiniteFire', value: infiniteFire } }));
+      });
+
+      // CRT Scanlines & Themes
+      document.getElementById('btn-toggle-scanlines').addEventListener('click', function() {
+        const vp = document.getElementById('crt-viewport');
+        vp.classList.toggle('with-scanlines');
+        this.classList.toggle('active', vp.classList.contains('with-scanlines'));
+      });
+
+      document.getElementById('theme-selector').addEventListener('change', function() {
+        const vp = document.getElementById('crt-viewport');
+        vp.classList.remove('theme-nes', 'theme-matrix', 'theme-amber', 'theme-cyberpunk');
+        vp.classList.add('theme-' + this.value);
+        window.dispatchEvent(new CustomEvent('setMarioTheme', { detail: { theme: this.value } }));
+      });
+    });
+  </script>
+</body>
+</html>

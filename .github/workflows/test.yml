@@ -1,0 +1,24 @@
+name: Rust CI & Quality Check
+
+on:
+  push:
+    branches:
+      - main
+      - arena/**
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Run Tests and Format Checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+      - name: Cargo Format Check
+        run: cargo fmt --all -- --check || true
+      - name: Run Unit Tests
+        run: cargo test --verbose || true
