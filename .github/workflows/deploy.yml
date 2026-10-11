@@ -26,36 +26,19 @@ jobs:
         with:
           targets: wasm32-unknown-unknown
 
-      - name: Cache Cargo & Rust Artifacts
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
-
       - name: Prepare Distribution Assets
         run: |
           mkdir -p dist
           cp -r public/* dist/
 
-      - name: Install Trunk
+      - name: Install Trunk & Build
         run: |
           if ! command -v trunk &> /dev/null; then
             wget -qO- https://github.com/trunk-rs/trunk/releases/download/v0.21.5/trunk-x86_64-unknown-linux-gnu.tar.gz | tar -xzf- -C /usr/local/bin/ || true
           fi
-
-      - name: Build WASM App with Trunk
-        run: |
           if command -v trunk &> /dev/null; then
             trunk build --release --public-url "/" || true
           fi
-          # Ensure static assets are present in dist
           cp -r public/* dist/
 
       - name: Publish to Cloudflare Pages
@@ -63,4 +46,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=ascii-mario-nostr --commit-dirty=true
+          command: pages deploy dist --project-name=ascii-mario-nostr --commit-dirty=true --branch=main
