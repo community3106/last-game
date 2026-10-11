@@ -42,26 +42,8 @@ jobs:
           cp -r public/* dist/
 
       - name: Deploy to Cloudflare Pages
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN || secrets.CF_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID || secrets.ACCOUNT_ID }}
-          WRANGLER_SEND_METRICS: "false"
-        run: |
-          echo "Starting Cloudflare Pages deployment..."
-          
-          # Try creating project if not exists
-          npx --yes wrangler pages project create ascii-mario-nostr --production-branch=main || true
-          
-          # Deploy with wrangler
-          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            npx --yes wrangler pages deploy dist \
-              --project-name=ascii-mario-nostr \
-              --account-id="$CLOUDFLARE_ACCOUNT_ID" \
-              --commit-dirty=true \
-              --branch=main
-          else
-            npx --yes wrangler pages deploy dist \
-              --project-name=ascii-mario-nostr \
-              --commit-dirty=true \
-              --branch=main
-          fi
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=ascii-mario-nostr --commit-dirty=true
