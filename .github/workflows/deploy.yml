@@ -43,30 +43,25 @@ jobs:
 
       - name: Deploy to Cloudflare Pages
         env:
-          CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN || secrets.CF_API_TOKEN }}
-          CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID || secrets.ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN || secrets.CF_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.CF_ACCOUNT_ID || secrets.ACCOUNT_ID }}
+          WRANGLER_SEND_METRICS: "false"
         run: |
-          echo "=== Cloudflare Pages Deployment Diagnostic ==="
-          if [ -n "$CF_API_TOKEN" ]; then
-            echo "API Token: Configured (Length: ${#CF_API_TOKEN} characters)"
+          echo "Starting Cloudflare Pages deployment..."
+          
+          # Try creating project if not exists
+          npx --yes wrangler pages project create ascii-mario-nostr --production-branch=main || true
+          
+          # Deploy with wrangler
+          if [ -n "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            npx --yes wrangler pages deploy dist \
+              --project-name=ascii-mario-nostr \
+              --account-id="$CLOUDFLARE_ACCOUNT_ID" \
+              --commit-dirty=true \
+              --branch=main
           else
-            echo "::warning::API Token is not detected in secrets (CLOUDFLARE_API_TOKEN / CLOUDFLARE_TOKEN / CF_API_TOKEN)"
+            npx --yes wrangler pages deploy dist \
+              --project-name=ascii-mario-nostr \
+              --commit-dirty=true \
+              --branch=main
           fi
-
-          if [ -n "$CF_ACCOUNT_ID" ]; then
-            echo "Account ID: Configured (Length: ${#CF_ACCOUNT_ID} characters)"
-          else
-            echo "::warning::Account ID is not detected in secrets (CLOUDFLARE_ACCOUNT_ID / CF_ACCOUNT_ID / ACCOUNT_ID)"
-          fi
-
-          # Run Wrangler Deploy
-          npx --yes wrangler pages deploy dist \
-            --project-name=ascii-mario-nostr \
-            --commit-dirty=true \
-            --branch=main \
-            --skip-fetching-deployments || {
-              echo "Retrying without branch flag..."
-              npx --yes wrangler pages deploy dist --project-name=ascii-mario-nostr --commit-dirty=true
-            }
