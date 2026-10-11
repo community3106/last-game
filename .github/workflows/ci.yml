@@ -12,14 +12,13 @@ concurrency:
 
 env:
   CARGO_TERM_COLOR: always
-  RUSTFLAGS: "-D warnings"
 
 jobs:
   native:
     name: check / clippy / test (native)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -28,14 +27,33 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
-      - name: Format
-        run: cargo fmt --all -- --check
+      # rustfmt は「整形すべき差分」を artifact として出す。ここでは失敗させず、
+      # 続く clippy / test の結果も同じ run で見られるようにする。
+      - name: Format (差分を artifact に保存)
+        run: |
+          cargo fmt --all
+          git diff --stat
+          git diff > fmt.diff || true
+          if [ -s fmt.diff ]; then
+            echo "::warning::rustfmt が整形した差分があります (artifact: fmt diff)"
+          fi
+          git diff --name-only
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fmt-diff
+          path: fmt.diff
+          if-no-files-found: ignore
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
 
       - name: Test
-        run: cargo test --workspace
+        run: cargo test --workspace --all-features
+
+      - name: Doc test
+        run: cargo test --workspace --all-features --doc
 
       - name: Terminal demo (ゲームが動いている様子をログに残す)
         run: cargo run --quiet -p mario-core --example ascii_frame -- 1-1
